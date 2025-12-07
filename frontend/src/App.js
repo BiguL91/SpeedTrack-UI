@@ -130,6 +130,7 @@ function App() {
   const runTest = () => {
     setLoading(true);
     setError(null);
+    // Reset Live-Werte auf 0 beim Start
     setCurrentTestValues({ download: 0, upload: 0, ping: 0 });
 
     const eventSource = new EventSource('http://localhost:5000/api/test/stream');
@@ -155,7 +156,7 @@ function App() {
                 }
             } else if (data.type === 'done') {
                 setLastResult(data.result);
-                fetchHistory(); 
+                fetchHistory(); // Verlauf aktualisieren
                 eventSource.close();
                 setLoading(false);
             } else if (data.type === 'error') {
@@ -174,6 +175,7 @@ function App() {
         
         eventSource.close();
         setLoading(false);
+        // Wenn noch keine Ergebnisse da sind, ist es ein echter Fehler
         if (!lastResult && currentTestValues.ping === 0) {
             setError("Verbindung zum Test-Stream unterbrochen.");
         }
@@ -384,17 +386,38 @@ function App() {
         {history.length > 0 && (
           <div className="card card-list">
             <h2>Letzte 5 Tests</h2>
+            
+            {/* Kopfzeile hinzugefügt */}
+            <div className="recent-tests-table-header">
+                <div className="header-time">Uhrzeit</div>
+                <div className="header-server">Server</div>
+                <div className="header-download">Download</div>
+                <div className="header-upload">Upload</div>
+                <div className="header-ping">Ping</div>
+            </div>
+
             <ul className="recent-tests-list"> 
               {history.slice(0, 5).map((test, index) => (
-                <li key={test.id} className="recent-tests-list-item"> 
-                  <div className="test-header">
-                    <strong>{new Date(test.timestamp).toLocaleString()}</strong>
-                    <span className="server-info">{test.serverLocation}</span>
+                <li key={test.id} className="recent-tests-row">
+                  <div className="row-time">
+                    {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
                   </div>
-                  <div className="test-metrics">
-                    <span>Down: <strong>{test.download.toFixed(0)}</strong></span>
-                    <span>Up: <strong>{test.upload.toFixed(0)}</strong></span>
-                    <span>Ping: <strong>{test.ping.toFixed(0)}</strong></span>
+                  
+                  <div className="row-server" title={test.serverLocation}>
+                    {test.serverLocation}
+                  </div>
+
+                  <div className="row-metric download">
+                    <span className="icon">⬇</span> {test.download.toFixed(0)} <small>Mbps</small>
+                  </div>
+                  
+                  <div className="row-metric upload">
+                    <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>Mbps</small>
+                  </div>
+                  
+                  <div className="row-metric ping">
+                    <span className="icon">⚡</span> {test.ping.toFixed(0)} <small>ms</small>
                   </div>
                 </li>
               ))}
