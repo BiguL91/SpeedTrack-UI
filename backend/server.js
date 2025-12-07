@@ -48,7 +48,6 @@ function createTable() {
 function runScheduledTest() {
   console.log(`[${new Date().toISOString()}] Starte geplanten Speedtest...`);
   
-  // Wir nutzen JSON Output für den Hintergrund-Task (zuverlässiger als Text Parsing)
   exec('speedtest --format=json --accept-license --accept-gdpr', (error, stdout, stderr) => {
     if (error) {
       console.error(`Geplanter Test fehlgeschlagen: ${error}`);
@@ -78,7 +77,7 @@ function runScheduledTest() {
         if (err) {
             console.error('Fehler beim Speichern des geplanten Tests:', err.message);
         } else {
-            console.log(`[${timestamp}] Geplanter Test erfolgreich gespeichert: DL:${downloadMbps.toFixed(2)} UL:${uploadMbps.toFixed(2)} Ping:${pingMs.toFixed(0)}`);
+            console.log(`[${timestamp}] Geplanter Test erfolgreich gespeichert.`);
         }
       });
 
@@ -122,4 +121,148 @@ app.get('/api/export', (req, res) => {
     let csvContent = 'ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country\n';
     
     rows.forEach(row => {
-      const escape = (text) => text ? `"${text.replace(/
+      const escape = (text) => text ? "" + text.toString().split("\"").join("\"\"") + "" : "";
+      
+      csvContent += [
+        row.id,
+        row.timestamp,
+        row.ping,
+        row.download,
+        row.upload,
+        row.packetLoss,
+        escape(row.isp),
+        escape(row.serverLocation),
+        escape(row.serverCountry)
+      ].join(',') + '\n';
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="speedtest_history.csv"');
+    res.send(csvContent);
+  });
+});
+
+app.post('/api/test', (req, res) => {
+    res.status(400).send("Bitte nutze /api/test/stream");
+});
+
+// Live-Streaming Endpunkt (SSE)
+app.get('/api/test/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  console.log('Starte Live-Speedtest (Manuell)...');
+  
+  const speedtest = spawn('speedtest', ['--accept-license', '--accept-gdpr', '--progress=yes']);
+
+  let buffer = '';
+  
+  let finalResult = {
+    ping: 0,
+    download: 0,
+    upload: 0,
+    packetLoss: 0,
+    isp: 'Unbekannt',
+    serverLocation: 'Unbekannt',
+    serverCountry: ''
+  };
+
+  speedtest.stdout.on('data', (data) => {
+    const text = data.toString();
+    buffer += text;
+
+    const pingMatch = text.match(/(?:Idle\s+)?Latency:\s+([\d\.]+)\s+ms/i);
+    if (pingMatch) {
+       const val = parseFloat(pingMatch[1]);
+       if (val > 0) {
+          finalResult.ping = val;
+          res.write(`data: ${JSON.stringify({ type: 'progress', phase: 'ping', value: val })}\n\n`);
+       }
+    }
+
+    const downloadMatch = text.match(/Download:\s+([\d\.]+)\s+Mbps/i);
+    if (downloadMatch) {
+       const val = parseFloat(downloadMatch[1]);
+       res.write(`data: ${JSON.stringify({ type: 'progress', phase: 'download', value: val })}\n\n`);
+    }
+
+    const uploadMatch = text.match(/Upload:\s+([\d\.]+)\s+Mbps/i);
+    if (uploadMatch) {
+       const val = parseFloat(uploadMatch[1]);
+       res.write(`data: ${JSON.stringify({ type: 'progress', phase: 'upload', value: val })}\n\n`);
+    }
+  });
+
+  speedtest.stderr.on('data', (data) => {
+      console.error(`CLI Error: ${data}`);
+  });
+
+  speedtest.on('close', (code) => {
+    console.log(`Manueller Speedtest beendet mit Code ${code}`);
+
+    if (code !== 0) {
+        res.write(`data: ${JSON.stringify({ type: 'error', message: 'Speedtest CLI fehlgeschlagen' })}\n\n`);
+        res.end();
+        return;
+    }
+
+    const ispMatch = buffer.match(/ISP:\s+(.+)/);
+    if (ispMatch) finalResult.isp = ispMatch[1].trim();
+    
+    const serverMatch = buffer.match(/Server:\s+(.+)/);
+    if (serverMatch) finalResult.serverLocation = serverMatch[1].trim();
+    
+    const packetLossMatch = buffer.match(/Packet Loss:\s+([\d\.]+)%/);
+    if (packetLossMatch) finalResult.packetLoss = parseFloat(packetLossMatch[1]);
+
+    if (finalResult.ping === 0) {
+        const allPings = [...buffer.matchAll(/(?:Idle\s+)?Latency:\s+([\d\.]+)\s+ms/gi)];
+        if (allPings.length > 0) finalResult.ping = parseFloat(allPings[allPings.length - 1][1]);
+    }
+
+    const allDownloads = [...buffer.matchAll(/Download:\s+([\d\.]+)\s+Mbps/g)];
+    if (allDownloads.length > 0) finalResult.download = parseFloat(allDownloads[allDownloads.length - 1][1]);
+
+    const allUploads = [...buffer.matchAll(/Upload:\s+([\d\.]+)\s+Mbps/g)];
+    if (allUploads.length > 0) finalResult.upload = parseFloat(allUploads[allUploads.length - 1][1]);
+    
+    const timestamp = new Date().toISOString();
+    const insertSql = `
+        INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    const params = [
+        timestamp, 
+        finalResult.ping || 0, 
+        finalResult.download || 0, 
+        finalResult.upload || 0, 
+        finalResult.packetLoss || 0, 
+        finalResult.isp, 
+        finalResult.serverLocation, 
+        'Unbekannt'
+    ];
+    
+    db.run(insertSql, params, function(err) {
+        if (err) {
+          console.error(err.message);
+          res.write(`data: ${JSON.stringify({ type: 'error', message: 'DB Speicherfehler' })}\n\n`);
+        } else {
+          res.write(`data: ${JSON.stringify({ type: 'done', result: { ...finalResult, timestamp, id: this.lastID } })}\n\n`);
+        }
+        res.end();
+    });
+  });
+});
+
+// --- PRODUCTION SETUP ---
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(PORT, () => {
+  console.log(`Server läuft auf Port ${PORT}`);
+});
