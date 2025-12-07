@@ -115,23 +115,21 @@ function App() {
 
   // useEffect für Initialisierung und Auto-Refresh
   useEffect(() => {
-    fetchHistory(); // Initialer Abruf beim Start
+    fetchHistory(); 
 
     const intervalId = setInterval(() => {
-        // Nur aktualisieren, wenn kein manueller Test läuft
         if (!loading) {
             fetchHistory();
         }
-    }, 30000); // Alle 30 Sekunden
+    }, 30000); 
 
-    return () => clearInterval(intervalId); // Cleanup Funktion
-  }, [loading]); // Abhängigkeit 'loading' damit der Intervall bei Statusänderung korrekt gehandhabt wird
+    return () => clearInterval(intervalId); 
+  }, [loading]); 
 
   // Neue runTest Funktion mit SSE
   const runTest = () => {
     setLoading(true);
     setError(null);
-    // Reset Live-Werte auf 0 beim Start
     setCurrentTestValues({ download: 0, upload: 0, ping: 0 });
 
     const eventSource = new EventSource('http://localhost:5000/api/test/stream');
@@ -157,7 +155,7 @@ function App() {
                 }
             } else if (data.type === 'done') {
                 setLastResult(data.result);
-                fetchHistory(); // Verlauf aktualisieren
+                fetchHistory(); 
                 eventSource.close();
                 setLoading(false);
             } else if (data.type === 'error') {
@@ -176,7 +174,6 @@ function App() {
         
         eventSource.close();
         setLoading(false);
-        // Wenn noch keine Ergebnisse da sind, ist es ein echter Fehler
         if (!lastResult && currentTestValues.ping === 0) {
             setError("Verbindung zum Test-Stream unterbrochen.");
         }
@@ -306,9 +303,7 @@ function App() {
     },
   };
 
-  // Bestimme Datenquelle: Live-Werte oder letztes Ergebnis
   const displayData = loading ? currentTestValues : lastResult;
-  // Titel für die Karte
   const resultCardTitle = loading ? 'Live Test läuft...' : 'Letztes Ergebnis';
 
   return (
@@ -328,89 +323,97 @@ function App() {
         {error && <p style={{color: 'red', marginTop: '10px'}}>{error}</p>}
       </div>
 
-      {/* Kombinierte Karte für Live & Ergebnis */}
-      {displayData && (
-        <div className="card">
-          <h2>{resultCardTitle}</h2>
-          
-          {/* Metadaten (Server, Datum) nur anzeigen, wenn NICHT loading oder wenn loading aber wir wollen es leer lassen */}
-          {!loading && displayData.timestamp && (
-            <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
-              {new Date(displayData.timestamp).toLocaleString()} - Server: {displayData.serverLocation} ({displayData.isp})
-            </p>
-          )}
-          {loading && (
-             <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic'}}>
-               Ermittle Daten...
-             </p>
-          )}
+      {/* DASHBOARD GRID */}
+      <div className="dashboard-grid">
+        
+        {/* MAIN CARD (Links oben) */}
+        {displayData && (
+          <div className="card card-main">
+            <h2>{resultCardTitle}</h2>
+            
+            {!loading && displayData.timestamp && (
+              <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
+                {new Date(displayData.timestamp).toLocaleString()} - Server: {displayData.serverLocation} ({displayData.isp})
+              </p>
+            )}
+            {loading && (
+               <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic'}}>
+                 Ermittle Daten...
+               </p>
+            )}
 
-          <div className="results-grid">
-            <div className="metric">
-              <h3>Download</h3>
-              <p>{displayData.download?.toFixed(2) || '0.00'} <span>Mbps</span></p>
-            </div>
-            <div className="metric">
-              <h3>Upload</h3>
-              <p>{displayData.upload?.toFixed(2) || '0.00'} <span>Mbps</span></p>
-            </div>
-            <div className="metric">
-              <h3>Ping</h3>
-              <p>{displayData.ping?.toFixed(0) || '0'} <span>ms</span></p>
+            <div className="results-grid">
+              <div className="metric">
+                <h3>Download</h3>
+                <p>{displayData.download?.toFixed(2) || '0.00'} <span>Mbps</span></p>
+              </div>
+              <div className="metric">
+                <h3>Upload</h3>
+                <p>{displayData.upload?.toFixed(2) || '0.00'} <span>Mbps</span></p>
+              </div>
+              <div className="metric">
+                <h3>Ping</h3>
+                <p>{displayData.ping?.toFixed(0) || '0'} <span>ms</span></p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      
-      {/* Durchschnittswerte */}
-      {history.length > 0 && !loading && (
-        <div className="card">
-          <h2>Durchschnittliche Werte</h2>
-          <div className="results-grid">
-            <div className="metric">
-              <h3>Durchschnitt Download</h3>
-              <p>{averages.download.toFixed(2)} <span>Mbps</span></p>
-            </div>
-            <div className="metric">
-              <h3>Durchschnitt Upload</h3>
-              <p>{averages.upload.toFixed(2)} <span>Mbps</span></p>
-            </div>
-            <div className="metric">
-              <h3>Durchschnitt Ping</h3>
-              <p>{averages.ping.toFixed(0)} <span>ms</span></p>
+        )}
+        
+        {/* STATS CARD (Rechts oben) */}
+        {history.length > 0 && !loading && (
+          <div className="card card-stats">
+            <h2>Durchschnitt</h2>
+            <div className="stats-grid">
+              <div className="metric">
+                <h3>Download Ø</h3>
+                <p>{averages.download.toFixed(2)} <span>Mbps</span></p>
+              </div>
+              <div className="metric">
+                <h3>Upload Ø</h3>
+                <p>{averages.upload.toFixed(2)} <span>Mbps</span></p>
+              </div>
+              <div className="metric">
+                <h3>Ping Ø</h3>
+                <p>{averages.ping.toFixed(0)} <span>ms</span></p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {history.length > 0 && (
-        <>
-          <div className="card">
+        {/* LIST CARD (Mitte) */}
+        {history.length > 0 && (
+          <div className="card card-list">
             <h2>Letzte 5 Tests</h2>
-            <ul className="recent-tests-list"> {/* Neue Klasse für eine Liste */}
+            <ul className="recent-tests-list"> 
               {history.slice(0, 5).map((test, index) => (
-                <li key={test.id} className="recent-tests-list-item"> {/* Neue Klasse */}
+                <li key={test.id} className="recent-tests-list-item"> 
                   <div className="test-header">
                     <strong>{new Date(test.timestamp).toLocaleString()}</strong>
-                    <span className="server-info" style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>{test.serverLocation}</span>
+                    <span className="server-info">{test.serverLocation}</span>
                   </div>
                   <div className="test-metrics">
-                    <span>Down: <strong>{test.download.toFixed(0)}</strong> Mbps</span>
-                    <span>Up: <strong>{test.upload.toFixed(0)}</strong> Mbps</span>
-                    <span>Ping: <strong>{test.ping.toFixed(0)}</strong> ms</span>
+                    <span>Down: <strong>{test.download.toFixed(0)}</strong></span>
+                    <span>Up: <strong>{test.upload.toFixed(0)}</strong></span>
+                    <span>Ping: <strong>{test.ping.toFixed(0)}</strong></span>
                   </div>
                 </li>
               ))}
             </ul>
           </div>
-          <div className="card chart-container">
-            <Line key={`speed-${theme}`} options={speedOptions} data={speedData} />
-          </div>
-          <div className="card chart-container">
-            <Line key={`ping-${theme}`} options={pingOptions} data={pingData} />
-          </div>
-        </>
-      )}
+        )}
+
+        {/* CHARTS (Unten) */}
+        {history.length > 0 && (
+          <>
+            <div className="card chart-container card-chart1">
+              <Line key={`speed-${theme}`} options={speedOptions} data={speedData} />
+            </div>
+            <div className="card chart-container card-chart2">
+              <Line key={`ping-${theme}`} options={pingOptions} data={pingData} />
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
