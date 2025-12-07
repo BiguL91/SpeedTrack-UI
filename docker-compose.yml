@@ -11,4 +11,4 @@ services:
       - PORT=5000
       - CRON_SCHEDULE=0 * * * *
     volumes:
-      - ./data:/app/data # Für persistente DB (optional, müsste im Code angepasst werden um DB in /app/data zu legen)
+      - ./data:/app/data # Persistente Datenbank-Speicherung

@@ -1,16 +1,17 @@
 # SpeedTest Tracker
 
-Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwindigkeit. Es führt automatische Speedtests durch, visualisiert die Ergebnisse und ermöglicht den Export der Daten.
-
-![Screenshot](https://via.placeholder.com/800x400?text=SpeedTest+Tracker+Dashboard)
+Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwindigkeit. Es führt automatische Speedtests durch, visualisiert die Ergebnisse und ermöglicht detaillierte Analysen.
 
 ## Features
 
-*   🚀 **Automatisierte Speedtests:** Stündliche Messungen im Hintergrund (konfigurierbar).
-*   📊 **Modernes Dashboard:** Interaktive Diagramme für Download, Upload und Ping.
-*   ⚡ **Live-Test:** Starte manuelle Tests und verfolge die Werte in Echtzeit.
-*   🌗 **Dark Mode:** Automatische Erkennung oder manueller Umschalter.
-*   💾 **Historie & Export:** Speicherung in SQLite-Datenbank und CSV-Export-Funktion.
+*   🚀 **Automatisierte Speedtests:** Stündliche Messungen im Hintergrund (Standard), Intervalle direkt über die UI anpassbar.
+*   📊 **Interaktive Diagramme:** Zoom & Pan Funktionen, dynamische Datenauswahl (letzte 5, 10, 20... Tests) und modernes Design.
+*   ⚡ **Live-Test:** Starte manuelle Tests und verfolge Ping, Download und Upload in Echtzeit.
+*   🔍 **Detail-Ansicht:** Klicke auf Testergebnisse für Details wie Jitter, Paketverlust, externe IP, Server-ID und Datenvolumen.
+*   ⚙️ **Einstellungen:** Ändere das Test-Intervall (z.B. alle 10 Min, stündlich, täglich) bequem über das Dashboard.
+*   🛡️ **Sicherheit:** Verhindert gleichzeitige Tests (Auto vs. Manuell), um verfälschte Ergebnisse zu vermeiden.
+*   🌗 **Dark Mode:** Automatische Erkennung (System) oder manueller Umschalter.
+*   💾 **Historie & Export:** Speicherung in persistenter SQLite-Datenbank und CSV-Export-Funktion.
 *   📱 **Responsive:** Optimiert für Desktop und Mobile.
 
 ## Installation
@@ -29,12 +30,13 @@ Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwind
     ```
 
 3.  Öffne `http://localhost:8080` im Browser.
+    *(Daten werden im Ordner `./data` persistent gespeichert)*
 
 ### Option B: Manuell (Node.js)
 
 Voraussetzungen:
 *   Node.js (v16+)
-*   Ookla Speedtest CLI (muss installiert und im PATH sein: https://www.speedtest.net/apps/cli)
+*   Ookla Speedtest CLI (muss installiert und im PATH sein: [Installationsanleitung](https://www.speedtest.net/apps/cli))
 
 1.  **Repository klonen:**
     ```bash
@@ -61,16 +63,27 @@ Voraussetzungen:
 
 ## Konfiguration
 
-Die Konfiguration erfolgt über Umgebungsvariablen (in `docker-compose.yml` oder `.env` im `backend` Ordner).
+Die Grundkonfiguration erfolgt über Umgebungsvariablen oder direkt in der UI.
 
 | Variable | Standard | Beschreibung |
 | :--- | :--- | :--- |
-| `PORT` | 5000 | Port des Backend-Servers |
-| `CRON_SCHEDULE` | `0 * * * *` | Zeitplan für automatische Tests (Cron-Syntax). Standard: Jede Stunde. |
+| `PORT` | 5000 | Port des Backend-Servers (Intern) |
+| `CRON_SCHEDULE` | `0 * * * *` | Initialer Zeitplan. Kann später in der UI unter "Einstellungen" geändert werden. |
+
+## Updates & Changelog
+
+*   **V1.2:**
+    *   Detail-Ansicht für Testergebnisse (Jitter, IP, Datenvolumen).
+    *   Unterscheidung zwischen manuellen (👤) und automatischen (🤖) Tests in der Liste.
+    *   Einstellungs-Modal für Test-Intervalle.
+    *   Interaktive Charts mit Zoom-Funktion.
+*   **V1.1:**
+    *   Datenbank-Persistenz Fix für Docker.
+    *   Relative API-Pfade für einfacheres Deployment.
 
 ## Technologien
 
-*   **Frontend:** React, Chart.js, CSS Modules
+*   **Frontend:** React, Chart.js (mit Zoom-Plugin), CSS Modules
 *   **Backend:** Node.js, Express, SQLite, node-cron
 *   **Core:** Ookla Speedtest CLI
 
