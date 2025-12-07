@@ -70,7 +70,8 @@ function upgradeDatabase() {
         { name: 'externalIp', type: 'TEXT' },
         { name: 'resultUrl', type: 'TEXT' },
         { name: 'downloadBytes', type: 'INTEGER' },
-        { name: 'uploadBytes', type: 'INTEGER' }
+        { name: 'uploadBytes', type: 'INTEGER' },
+        { name: 'isManual', type: 'INTEGER' } // 0 = Auto, 1 = Manuell
     ];
 
     columnsToAdd.forEach(col => {
@@ -149,14 +150,16 @@ function runScheduledTest() {
       const downloadBytes = result.download.bytes || 0;
       const uploadBytes = result.upload.bytes || 0;
       
+      const isManual = 0; // Automatisch
+      
       const timestamp = new Date().toISOString();
 
       const insertSql = `
-        INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, jitter, serverId, serverHost, serverPort, serverIp, downloadElapsed, uploadElapsed, isVpn, externalIp, resultUrl, downloadBytes, uploadBytes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, jitter, serverId, serverHost, serverPort, serverIp, downloadElapsed, uploadElapsed, isVpn, externalIp, resultUrl, downloadBytes, uploadBytes, isManual)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
-      const params = [timestamp, pingMs, downloadMbps, uploadMbps, packetLoss, isp, serverLocation, serverCountry, jitter, serverId, serverHost, serverPort, serverIp, downloadElapsed, uploadElapsed, isVpn, externalIp, resultUrl, downloadBytes, uploadBytes];
+      const params = [timestamp, pingMs, downloadMbps, uploadMbps, packetLoss, isp, serverLocation, serverCountry, jitter, serverId, serverHost, serverPort, serverIp, downloadElapsed, uploadElapsed, isVpn, externalIp, resultUrl, downloadBytes, uploadBytes, isManual];
 
       db.run(insertSql, params, (err) => {
         if (err) {
@@ -392,9 +395,11 @@ app.get('/api/test/stream', (req, res) => {
     if (allUploads.length > 0) finalResult.upload = parseFloat(allUploads[allUploads.length - 1][1]);
     
     const timestamp = new Date().toISOString();
+    const isManual = 1; // Manuell
+
     const insertSql = `
-        INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, jitter, serverId, serverHost, serverPort, serverIp)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, jitter, serverId, serverHost, serverPort, serverIp, downloadElapsed, uploadElapsed, isVpn, externalIp, resultUrl, downloadBytes, uploadBytes, isManual)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     const params = [
@@ -410,7 +415,15 @@ app.get('/api/test/stream', (req, res) => {
         finalResult.serverId,
         finalResult.serverHost,
         finalResult.serverPort,
-        finalResult.serverIp
+        finalResult.serverIp,
+        null, // downloadElapsed (fehlt bei manuell)
+        null, // uploadElapsed (fehlt bei manuell)
+        0,    // isVpn (schwer zu ermitteln bei manuell)
+        null, // externalIp (fehlt bei manuell)
+        null, // resultUrl (fehlt bei manuell)
+        0,    // downloadBytes
+        0,    // uploadBytes
+        isManual
     ];
     
     db.run(insertSql, params, function(err) {

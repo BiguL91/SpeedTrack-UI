@@ -429,6 +429,34 @@ button.start-btn:disabled {
     .row-metric { width: 33%; justify-content: flex-start; }
 }
 
+/* Farbliche Unterscheidung für Test-Typen */
+.recent-tests-row.manual-test-row {
+  background-color: rgba(102, 126, 234, 0.05); /* Leichter Blau-Ton */
+  border-left: 4px solid #667eea;
+  padding-left: 16px; /* Ausgleich für Border */
+}
+
+[data-theme='dark'] .recent-tests-row.manual-test-row {
+  background-color: rgba(102, 126, 234, 0.1);
+}
+
+.recent-tests-row.auto-test-row {
+  background-color: rgba(46, 204, 113, 0.03); /* Leichter Grün-Ton */
+  border-left: 4px solid #2ecc71;
+  padding-left: 16px; /* Ausgleich für Border */
+}
+
+[data-theme='dark'] .recent-tests-row.auto-test-row {
+  background-color: rgba(46, 204, 113, 0.05);
+}
+
+/* Hover-Effekt anpassen */
+.recent-tests-row.manual-test-row:hover {
+  background-color: rgba(102, 126, 234, 0.1);
+}
+.recent-tests-row.auto-test-row:hover {
+  background-color: rgba(46, 204, 113, 0.07);
+}
 
 /* Theme Toggle */
 .theme-toggle-container {

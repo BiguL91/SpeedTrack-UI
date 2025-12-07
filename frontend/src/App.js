@@ -615,9 +615,19 @@ function App() {
 
           <ul className="recent-tests-list"> 
             {history.slice(0, visibleCount).map((test, index) => (
-              <li key={test.id} className="recent-tests-row" onClick={() => setSelectedTest(test)} style={{cursor: 'pointer'}}>
+              <li 
+                key={test.id} 
+                className={`recent-tests-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
+                onClick={() => setSelectedTest(test)} 
+                style={{cursor: 'pointer'}}
+              >
                 <div className="row-time">
-                  {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                      {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help'}}>
+                        {test.isManual ? '👤' : '🤖'}
+                      </span>
+                  </div>
                   <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
                 </div>
                 
