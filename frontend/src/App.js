@@ -385,7 +385,12 @@ function App() {
         {/* LIST CARD (Mitte) */}
         {history.length > 0 && (
           <div className="card card-list">
-            <h2>Letzte 5 Tests</h2>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+                <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte 5 Tests</h2>
+                <a href="http://localhost:5000/api/export" target="_blank" rel="noopener noreferrer" style={{color: '#667eea', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold'}}>
+                    CSV Export ⬇
+                </a>
+            </div>
             
             {/* Kopfzeile hinzugefügt */}
             <div className="recent-tests-table-header">
