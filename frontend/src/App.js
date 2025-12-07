@@ -198,6 +198,7 @@ function App() {
               {history.slice(0, 5).map((test, index) => (
                 <div key={test.id} className="recent-test-item">
                   <p><strong>{new Date(test.timestamp).toLocaleString()}</strong></p>
+                  <p>Server: {test.serverLocation} ({test.isp})</p> {/* Serverinformation hinzugefügt */}
                   <p>Download: {test.download.toFixed(2)} Mbps</p>
                   <p>Upload: {test.upload.toFixed(2)} Mbps</p>
                   <p>Ping: {test.ping.toFixed(0)} ms</p>
