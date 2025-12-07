@@ -3,6 +3,7 @@ const cors = require('cors');
 const { exec, spawn } = require('child_process');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 const cron = require('node-cron');
 require('dotenv').config();
 
@@ -13,7 +14,12 @@ app.use(cors());
 app.use(express.json());
 
 // Datenbank-Einrichtung
-const dbPath = path.resolve(__dirname, 'speedtest.db');
+// Prüfe ob /app/data existiert (Docker Volume), sonst lokales Verzeichnis nutzen
+const dbDir = '/app/data';
+const dbPath = fs.existsSync(dbDir) 
+  ? path.join(dbDir, 'speedtest.db') 
+  : path.resolve(__dirname, 'speedtest.db');
+
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Fehler beim Öffnen der Datenbank:', err.message);

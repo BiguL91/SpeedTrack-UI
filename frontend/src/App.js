@@ -120,7 +120,7 @@ function App() {
 
   const fetchHistory = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/history');
+      const response = await axios.get('/api/history');
       setHistory(response.data);
       if (response.data.length > 0) {
         setLastResult(response.data[0]);
@@ -151,7 +151,7 @@ function App() {
     // Reset Live-Werte auf 0 beim Start
     setCurrentTestValues({ download: 0, upload: 0, ping: 0 });
 
-    const eventSource = new EventSource('http://localhost:5000/api/test/stream');
+    const eventSource = new EventSource('/api/test/stream');
     
     let hasStartedDownload = false;
     let hasStartedUpload = false;
@@ -363,9 +363,9 @@ function App() {
               
               {history.length > 0 && (
                   <div className="sub-metrics">
-                      <div title="Durchschnitt">Ø {stats.download.avg.toFixed(2)}</div>
-                      <div title="Minimum">Min {stats.download.min.toFixed(2)}</div>
-                      <div title="Maximum">Max {stats.download.max.toFixed(2)}</div>
+                      <div>Ø {stats.download.avg.toFixed(2)} MBit/s (Durchschnitt)</div>
+                      <div>{stats.download.min.toFixed(2)} MBit/s (Minimum)</div>
+                      <div>{stats.download.max.toFixed(2)} MBit/s (Maximum)</div>
                   </div>
               )}
             </div>
@@ -377,9 +377,9 @@ function App() {
               
               {history.length > 0 && (
                   <div className="sub-metrics">
-                      <div>Ø {stats.upload.avg.toFixed(2)}</div>
-                      <div>Min {stats.upload.min.toFixed(2)}</div>
-                      <div>Max {stats.upload.max.toFixed(2)}</div>
+                      <div>Ø {stats.upload.avg.toFixed(2)} MBit/s (Durchschnitt)</div>
+                      <div>{stats.upload.min.toFixed(2)} MBit/s (Minimum)</div>
+                      <div>{stats.upload.max.toFixed(2)} MBit/s (Maximum)</div>
                   </div>
               )}
             </div>
@@ -391,9 +391,9 @@ function App() {
               
               {history.length > 0 && (
                   <div className="sub-metrics">
-                      <div>Ø {stats.ping.avg.toFixed(0)}</div>
-                      <div>Min {stats.ping.min.toFixed(0)}</div>
-                      <div>Max {stats.ping.max.toFixed(0)}</div>
+                      <div>Ø {stats.ping.avg.toFixed(0)} ms (Durchschnitt)</div>
+                      <div>{stats.ping.min.toFixed(0)} ms (Minimum)</div>
+                      <div>{stats.ping.max.toFixed(0)} ms (Maximum)</div>
                   </div>
               )}
             </div>
@@ -420,7 +420,7 @@ function App() {
         <div className="card">
           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
               <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte 5 Tests</h2>
-              <a href="http://localhost:5000/api/export" target="_blank" rel="noopener noreferrer" style={{color: '#667eea', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold'}}>
+              <a href="/api/export" target="_blank" rel="noopener noreferrer" style={{color: '#667eea', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold'}}>
                   CSV Export ⬇
               </a>
           </div>
