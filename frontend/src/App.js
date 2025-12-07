@@ -333,11 +333,7 @@ function App() {
           <div className="card card-main">
             <h2>{resultCardTitle}</h2>
             
-            {!loading && displayData.timestamp && (
-              <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
-                {new Date(displayData.timestamp).toLocaleString()} - Server: {displayData.serverLocation} ({displayData.isp})
-              </p>
-            )}
+            {/* Entfernte Zeile: Metadaten (Datum/Uhrzeit und Server) werden hier nicht mehr angezeigt */}
             {loading && (
                <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic'}}>
                  Ermittle Daten...
