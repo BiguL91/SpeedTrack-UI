@@ -11,6 +11,7 @@ import {
   Legend
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import zoomPlugin from 'chartjs-plugin-zoom';
 import './App.css';
 
 ChartJS.register(
@@ -20,7 +21,8 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  zoomPlugin
 );
 
 function App() {
@@ -211,17 +213,19 @@ function App() {
         label: 'Download (Mbps)',
         data: chartDataReversed.map(item => item.download),
         borderColor: 'rgb(53, 162, 235)',
-        backgroundColor: 'rgba(53, 162, 235, 0.5)',
+        backgroundColor: 'rgba(53, 162, 235, 0.2)',
         yAxisID: 'y',
-        tension: 0.3,
+        tension: 0.4,
+        fill: true,
       },
       {
         label: 'Upload (Mbps)',
         data: chartDataReversed.map(item => item.upload),
         borderColor: 'rgb(255, 99, 132)',
-        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+        backgroundColor: 'rgba(255, 99, 132, 0.2)',
         yAxisID: 'y',
-        tension: 0.3,
+        tension: 0.4,
+        fill: true,
       },
     ],
   };
@@ -234,9 +238,10 @@ function App() {
         label: 'Ping (ms)',
         data: chartDataReversed.map(item => item.ping),
         borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
         yAxisID: 'y',
-        tension: 0.3,
+        tension: 0.4,
+        fill: true,
       },
     ],
   };
@@ -251,14 +256,24 @@ function App() {
     },
     stacked: false,
     plugins: {
-      title: {
-        display: true,
-        text: 'Download & Upload Verlauf',
-        color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#e0e0e0' : '#666',
-      },
       legend: {
         labels: {
             color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#e0e0e0' : '#666'
+        }
+      },
+      zoom: {
+        pan: {
+          enabled: true,
+          mode: 'x',
+        },
+        zoom: {
+          wheel: {
+            enabled: true,
+          },
+          pinch: {
+            enabled: true
+          },
+          mode: 'x',
         }
       }
     },
@@ -299,6 +314,21 @@ function App() {
       legend: {
         labels: {
             color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#e0e0e0' : '#666'
+        }
+      },
+      zoom: {
+        pan: {
+          enabled: true,
+          mode: 'x',
+        },
+        zoom: {
+          wheel: {
+            enabled: true,
+          },
+          pinch: {
+            enabled: true
+          },
+          mode: 'x',
         }
       }
     },
