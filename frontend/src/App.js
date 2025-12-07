@@ -328,7 +328,7 @@ function App() {
       {/* DASHBOARD GRID */}
       <div className="dashboard-grid">
         
-        {/* MAIN CARD (Links oben) */}
+        {/* MAIN CARD (Links oben) - Einheiten UNTER dem Wert */}
         {displayData && (
           <div className="card card-main">
             <h2>{resultCardTitle}</h2>
@@ -357,22 +357,22 @@ function App() {
           </div>
         )}
         
-        {/* STATS CARD (Rechts oben) */}
+        {/* STATS CARD (Rechts oben) - Einheiten NEBEN dem Wert */}
         {history.length > 0 && (
           <div className="card card-stats">
             <h2>Durchschnitt</h2>
             <div className="stats-grid">
               <div className="metric">
                 <h3>Download Ø</h3>
-                <p>{averages.download.toFixed(2)} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
+                <p>{averages.download.toFixed(2)} <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
               </div>
               <div className="metric">
                 <h3>Upload Ø</h3>
-                <p>{averages.upload.toFixed(2)} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
+                <p>{averages.upload.toFixed(2)} <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
               </div>
               <div className="metric">
                 <h3>Ping Ø</h3>
-                <p>{averages.ping.toFixed(0)} <br/> <span style={{fontSize: '0.6em'}}>ms</span></p>
+                <p>{averages.ping.toFixed(0)} <span style={{fontSize: '0.6em'}}>ms</span></p>
               </div>
             </div>
           </div>
