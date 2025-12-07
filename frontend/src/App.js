@@ -325,15 +325,18 @@ function App() {
         {error && <p style={{color: 'red', marginTop: '10px'}}>{error}</p>}
       </div>
 
-      {/* DASHBOARD GRID */}
-      <div className="dashboard-grid">
-        
-        {/* MAIN CARD (Links oben) - Einheiten UNTER dem Wert */}
+      {/* VEREINFACHTES LAYOUT: ALLES UNTEREINANDER, AUSSER CHARTS */}
+      
+        {/* 1. MAIN CARD */}
         {displayData && (
-          <div className="card card-main">
+          <div className="card">
             <h2>{resultCardTitle}</h2>
             
-            {/* Entfernte Zeile: Metadaten (Datum/Uhrzeit und Server) werden hier nicht mehr angezeigt */}
+            {!loading && displayData.timestamp && (
+              <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
+                {new Date(displayData.timestamp).toLocaleString()} - Server: {displayData.serverLocation} ({displayData.isp})
+              </p>
+            )}
             {loading && (
                <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic'}}>
                  Ermittle Daten...
@@ -357,7 +360,7 @@ function App() {
           </div>
         )}
         
-        {/* STATS CARD (Rechts oben) - Einheiten NEBEN dem Wert */}
+        {/* 2. STATS CARD */}
         {history.length > 0 && (
           <div className="card card-stats">
             <h2>Durchschnitt</h2>
@@ -378,9 +381,21 @@ function App() {
           </div>
         )}
 
-        {/* LIST CARD (Mitte) */}
+        {/* 3. CHARTS WRAPPER */}
         {history.length > 0 && (
-          <div className="card card-list">
+          <div className="charts-row">
+            <div className="card chart-container">
+              <Line key={`speed-${theme}`} options={speedOptions} data={speedData} />
+            </div>
+            <div className="card chart-container">
+              <Line key={`ping-${theme}`} options={pingOptions} data={pingData} />
+            </div>
+          </div>
+        )}
+
+        {/* 4. LIST CARD */}
+        {history.length > 0 && (
+          <div className="card">
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
                 <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte 5 Tests</h2>
                 <a href="http://localhost:5000/api/export" target="_blank" rel="noopener noreferrer" style={{color: '#667eea', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold'}}>
@@ -388,7 +403,6 @@ function App() {
                 </a>
             </div>
             
-            {/* Kopfzeile hinzugefügt */}
             <div className="recent-tests-table-header">
                 <div className="header-time">Uhrzeit</div>
                 <div className="header-server">Server</div>
@@ -425,19 +439,6 @@ function App() {
             </ul>
           </div>
         )}
-
-        {/* CHARTS (Unten) */}
-        {history.length > 0 && (
-          <>
-            <div className="card chart-container card-chart1">
-              <Line key={`speed-${theme}`} options={speedOptions} data={speedData} />
-            </div>
-            <div className="card chart-container card-chart2">
-              <Line key={`ping-${theme}`} options={pingOptions} data={pingData} />
-            </div>
-          </>
-        )}
-      </div>
     </div>
   );
 }
