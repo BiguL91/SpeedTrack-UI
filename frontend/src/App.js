@@ -343,15 +343,15 @@ function App() {
             <div className="results-grid">
               <div className="metric">
                 <h3>Download</h3>
-                <p>{displayData.download?.toFixed(2) || '0.00'} <span>Mbps</span></p>
+                <p>{displayData.download?.toFixed(2) || '0.00'} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
               </div>
               <div className="metric">
                 <h3>Upload</h3>
-                <p>{displayData.upload?.toFixed(2) || '0.00'} <span>Mbps</span></p>
+                <p>{displayData.upload?.toFixed(2) || '0.00'} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
               </div>
               <div className="metric">
                 <h3>Ping</h3>
-                <p>{displayData.ping?.toFixed(0) || '0'} <span>ms</span></p>
+                <p>{displayData.ping?.toFixed(0) || '0'} <br/> <span style={{fontSize: '0.6em'}}>ms</span></p>
               </div>
             </div>
           </div>
@@ -364,15 +364,15 @@ function App() {
             <div className="stats-grid">
               <div className="metric">
                 <h3>Download Ø</h3>
-                <p>{averages.download.toFixed(2)} <span>Mbps</span></p>
+                <p>{averages.download.toFixed(2)} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
               </div>
               <div className="metric">
                 <h3>Upload Ø</h3>
-                <p>{averages.upload.toFixed(2)} <span>Mbps</span></p>
+                <p>{averages.upload.toFixed(2)} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
               </div>
               <div className="metric">
                 <h3>Ping Ø</h3>
-                <p>{averages.ping.toFixed(0)} <span>ms</span></p>
+                <p>{averages.ping.toFixed(0)} <br/> <span style={{fontSize: '0.6em'}}>ms</span></p>
               </div>
             </div>
           </div>
@@ -410,11 +410,11 @@ function App() {
                   </div>
 
                   <div className="row-metric download">
-                    <span className="icon">⬇</span> {test.download.toFixed(0)} <small>Mbps</small>
+                    <span className="icon">⬇</span> {test.download.toFixed(0)} <small>MBit/s</small>
                   </div>
                   
                   <div className="row-metric upload">
-                    <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>Mbps</small>
+                    <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>MBit/s</small>
                   </div>
                   
                   <div className="row-metric ping">
