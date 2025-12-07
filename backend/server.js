@@ -3,6 +3,7 @@ const cors = require('cors');
 const { exec, spawn } = require('child_process');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const cron = require('node-cron');
 require('dotenv').config();
 
 const app = express();
@@ -43,6 +44,60 @@ function createTable() {
   });
 }
 
+// --- Automatischer Hintergrund-Test ---
+function runScheduledTest() {
+  console.log(`[${new Date().toISOString()}] Starte geplanten Speedtest...`);
+  
+  // Wir nutzen JSON Output für den Hintergrund-Task (zuverlässiger als Text Parsing)
+  exec('speedtest --format=json --accept-license --accept-gdpr', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Geplanter Test fehlgeschlagen: ${error}`);
+      return;
+    }
+
+    try {
+      const result = JSON.parse(stdout);
+      
+      const downloadMbps = (result.download.bandwidth * 8) / 1000000;
+      const uploadMbps = (result.upload.bandwidth * 8) / 1000000;
+      const pingMs = result.ping.latency;
+      const packetLoss = result.packetLoss || 0;
+      const isp = result.isp;
+      const serverLocation = result.server.location;
+      const serverCountry = result.server.country;
+      const timestamp = new Date().toISOString();
+
+      const insertSql = `
+        INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      
+      const params = [timestamp, pingMs, downloadMbps, uploadMbps, packetLoss, isp, serverLocation, serverCountry];
+
+      db.run(insertSql, params, (err) => {
+        if (err) {
+            console.error('Fehler beim Speichern des geplanten Tests:', err.message);
+        } else {
+            console.log(`[${timestamp}] Geplanter Test erfolgreich gespeichert: DL:${downloadMbps.toFixed(2)} UL:${uploadMbps.toFixed(2)} Ping:${pingMs.toFixed(0)}`);
+        }
+      });
+
+    } catch (parseError) {
+      console.error('Fehler beim Parsen des JSON Outputs:', parseError);
+    }
+  });
+}
+
+// Cronjob Initialisierung
+const schedule = process.env.CRON_SCHEDULE || '0 * * * *';
+if (cron.validate(schedule)) {
+    cron.schedule(schedule, runScheduledTest);
+    console.log(`Cronjob aktiviert mit Zeitplan: ${schedule}`);
+} else {
+    console.error(`Ungültiges Cron-Format: ${schedule}`);
+}
+
+
 // Routen
 app.get('/', (req, res) => {
   res.send('SpeedTest Tracker API is running');
@@ -62,19 +117,17 @@ app.get('/api/history', (req, res) => {
 
 // Alter Endpunkt (Fallback)
 app.post('/api/test', (req, res) => {
-    // ... alter code falls nötig, aber wir nutzen jetzt stream ...
     res.status(400).send("Bitte nutze /api/test/stream");
 });
 
-// NEUER Live-Streaming Endpunkt (SSE)
+// Live-Streaming Endpunkt (SSE)
 app.get('/api/test/stream', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
 
-  console.log('Starte Live-Speedtest...');
+  console.log('Starte Live-Speedtest (Manuell)...');
   
-  // Wir nutzen spawn für Streaming-Output
   const speedtest = spawn('speedtest', ['--accept-license', '--accept-gdpr', '--progress=yes']);
 
   let buffer = '';
@@ -93,10 +146,7 @@ app.get('/api/test/stream', (req, res) => {
     const text = data.toString();
     buffer += text;
 
-    // --- Live Parsing ---
-    
-    // Ping: "Latency: 13.00 ms" oder "Idle Latency: 24.58 ms"
-    // Regex sucht nach Optional "Idle " gefolgt von "Latency:"
+    // Ping
     const pingMatch = text.match(/(?:Idle\s+)?Latency:\s+([\d\.]+)\s+ms/i);
     if (pingMatch) {
        const val = parseFloat(pingMatch[1]);
@@ -106,14 +156,14 @@ app.get('/api/test/stream', (req, res) => {
        }
     }
 
-    // Download: "Download:    45.34 Mbps"
+    // Download
     const downloadMatch = text.match(/Download:\s+([\d\.]+)\s+Mbps/i);
     if (downloadMatch) {
        const val = parseFloat(downloadMatch[1]);
        res.write(`data: ${JSON.stringify({ type: 'progress', phase: 'download', value: val })}\n\n`);
     }
 
-    // Upload: "Upload:    12.00 Mbps"
+    // Upload
     const uploadMatch = text.match(/Upload:\s+([\d\.]+)\s+Mbps/i);
     if (uploadMatch) {
        const val = parseFloat(uploadMatch[1]);
@@ -122,12 +172,11 @@ app.get('/api/test/stream', (req, res) => {
   });
 
   speedtest.stderr.on('data', (data) => {
-      // Fehler im Stream ignorieren wir für den User, loggen sie aber
       console.error(`CLI Error: ${data}`);
   });
 
   speedtest.on('close', (code) => {
-    console.log(`Speedtest beendet mit Code ${code}`);
+    console.log(`Manueller Speedtest beendet mit Code ${code}`);
 
     if (code !== 0) {
         res.write(`data: ${JSON.stringify({ type: 'error', message: 'Speedtest CLI fehlgeschlagen' })}\n\n`);
@@ -135,23 +184,16 @@ app.get('/api/test/stream', (req, res) => {
         return;
     }
 
-    // --- Finales Parsing aus dem Gesamt-Buffer ---
-    
-    // ISP
+    // Finale Parsing
     const ispMatch = buffer.match(/ISP:\s+(.+)/);
     if (ispMatch) finalResult.isp = ispMatch[1].trim();
     
-    // Server
     const serverMatch = buffer.match(/Server:\s+(.+)/);
     if (serverMatch) finalResult.serverLocation = serverMatch[1].trim();
     
-    // Packet Loss
     const packetLossMatch = buffer.match(/Packet Loss:\s+([\d\.]+)%/);
     if (packetLossMatch) finalResult.packetLoss = parseFloat(packetLossMatch[1]);
 
-    // Finale Werte sicherstellen (das letzte gefundene im Buffer ist das Endergebnis)
-    
-    // Ping Fallback falls Live-Parsing 0 war
     if (finalResult.ping === 0) {
         const allPings = [...buffer.matchAll(/(?:Idle\s+)?Latency:\s+([\d\.]+)\s+ms/gi)];
         if (allPings.length > 0) finalResult.ping = parseFloat(allPings[allPings.length - 1][1]);
@@ -163,7 +205,6 @@ app.get('/api/test/stream', (req, res) => {
     const allUploads = [...buffer.matchAll(/Upload:\s+([\d\.]+)\s+Mbps/g)];
     if (allUploads.length > 0) finalResult.upload = parseFloat(allUploads[allUploads.length - 1][1]);
     
-    // DB Speichern
     const timestamp = new Date().toISOString();
     const insertSql = `
         INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry)
@@ -186,7 +227,6 @@ app.get('/api/test/stream', (req, res) => {
           console.error(err.message);
           res.write(`data: ${JSON.stringify({ type: 'error', message: 'DB Speicherfehler' })}\n\n`);
         } else {
-          // Erfolg! Sende das finale Objekt an Frontend
           res.write(`data: ${JSON.stringify({ type: 'done', result: { ...finalResult, timestamp, id: this.lastID } })}\n\n`);
         }
         res.end();
