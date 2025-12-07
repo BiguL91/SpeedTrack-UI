@@ -68,7 +68,15 @@ function App() {
       let next = new Date(now);
       
       // Einfacher Parser für unsere spezifischen Dropdown-Werte
-      if (cronSchedule === '*/10 * * * *') {
+      if (cronSchedule === '*/5 * * * *') {
+        // Nächste 5 Minuten Marke
+        const minutes = now.getMinutes();
+        const remainder = minutes % 5;
+        next.setMinutes(minutes + (5 - remainder));
+        next.setSeconds(0);
+        next.setMilliseconds(0);
+      }
+      else if (cronSchedule === '*/10 * * * *') {
         // Nächste 10 Minuten Marke
         const minutes = now.getMinutes();
         const remainder = minutes % 10;
@@ -77,14 +85,6 @@ function App() {
         next.setMilliseconds(0);
       }
       else if (cronSchedule === '*/30 * * * *') {
-        // Nächste 30 Minuten Marke
-        const minutes = now.getMinutes();
-        const remainder = minutes % 30;
-        next.setMinutes(minutes + (30 - remainder));
-        next.setSeconds(0);
-        next.setMilliseconds(0);
-      } 
-      else if (cronSchedule === '0 * * * *') {
         // Nächste volle Stunde
         next.setHours(now.getHours() + 1);
         next.setMinutes(0);
@@ -306,8 +306,9 @@ function App() {
                 fetchHistory(); // Verlauf aktualisieren
                 eventSource.close();
                 setLoading(false);
+                showToast("Test erfolgreich beendet! 🚀", "success");
             } else if (data.type === 'error') {
-                setError(data.message);
+                showToast(data.message, "error"); // Fehler als Toast!
                 eventSource.close();
                 setLoading(false);
             }
@@ -640,6 +641,7 @@ function App() {
                     onChange={(e) => setCronSchedule(e.target.value)}
                     style={{width: '100%', padding: '10px', marginTop: '10px', marginBottom: '20px'}}
                 >
+                    <option value="*/5 * * * *">Alle 5 Minuten</option>
                     <option value="*/10 * * * *">Alle 10 Minuten</option>
                     <option value="*/30 * * * *">Alle 30 Minuten</option>
                     <option value="0 * * * *">Jede Stunde</option>

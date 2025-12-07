@@ -13,6 +13,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// Globale Variable zur Vermeidung gleichzeitiger Tests
+let isTestRunning = false;
+
 // Datenbank-Einrichtung
 // Prüfe ob /app/data existiert (Docker Volume), sonst lokales Verzeichnis nutzen
 const dbDir = '/app/data';
@@ -76,9 +79,18 @@ function createTable() {
 
 // --- Automatischer Hintergrund-Test ---
 function runScheduledTest() {
+  if (isTestRunning) {
+    console.log(`[${new Date().toISOString()}] Geplanter Test übersprungen: Ein anderer Test läuft bereits.`);
+    return;
+  }
+
+  isTestRunning = true;
   console.log(`[${new Date().toISOString()}] Starte geplanten Speedtest...`);
   
   exec('speedtest --format=json --accept-license --accept-gdpr', (error, stdout, stderr) => {
+    // Flag immer zurücksetzen, egal was passiert
+    isTestRunning = false;
+
     if (error) {
       console.error(`Geplanter Test fehlgeschlagen: ${error}`);
       return;
@@ -233,6 +245,14 @@ app.get('/api/test/stream', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
 
+  if (isTestRunning) {
+      console.log('Manueller Start blockiert: Test läuft bereits.');
+      res.write(`data: ${JSON.stringify({ type: 'error', message: 'Ein Test läuft bereits im Hintergrund. Bitte warten.' })}\n\n`);
+      res.end();
+      return;
+  }
+
+  isTestRunning = true;
   console.log('Starte Live-Speedtest (Manuell)...');
   
   const speedtest = spawn('speedtest', ['--accept-license', '--accept-gdpr', '--progress=yes']);
@@ -280,6 +300,7 @@ app.get('/api/test/stream', (req, res) => {
   });
 
   speedtest.on('close', (code) => {
+    isTestRunning = false; // Lock freigeben
     console.log(`Manueller Speedtest beendet mit Code ${code}`);
 
     if (code !== 0) {
