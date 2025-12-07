@@ -141,19 +141,6 @@ button.start-btn:disabled {
   margin-top: 25px;
 }
 
-/* Stats Grid (Stats Card) */
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr; /* Standardmäßig 1 Spalte */
-  gap: 15px;
-}
-
-@media (min-width: 600px) { /* Ab Tablet immer 3 Spalten für Stats */
-    .stats-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
 .metric {
   background: var(--metric-bg);
   padding: 20px;
@@ -163,9 +150,9 @@ button.start-btn:disabled {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center; /* Vertikale Zentrierung */
+  justify-content: flex-start; /* Start, da Inhalt jetzt mehr wird */
   transition: transform 0.2s;
-  min-height: 120px; 
+  /* min-height entfernt, damit es wachsen kann */
 }
 
 .metric:hover {
@@ -179,45 +166,55 @@ button.start-btn:disabled {
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  margin-bottom: 8px;
+  margin-bottom: 15px;
   margin-top: 0;
 }
 
 .metric p {
-  font-size: 2rem;
+  font-size: 2.5rem; /* Etwas größer für den Hauptwert */
   font-weight: 800;
   color: var(--text-color);
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.1;
   background: var(--bg-gradient);
   -webkit-background-clip: text; 
   text-align: center; 
+  margin-bottom: 15px;
 }
 
 .metric p span {
-  font-size: 0.9rem; /* Ursprüngliche Größe für Main Card */
+  font-size: 0.8rem; 
   font-weight: 500;
   color: var(--text-secondary);
-  display: block; /* Unter den Wert zwingen */
+  display: block; 
   margin-top: 5px;
 }
 
-/* Kleinere Metriken für Stats Card - Hier bleiben die Einheiten daneben */
-.card-stats .metric {
-    min-height: auto; /* Keine fixe Höhe für Stats */
-    padding: 15px;
+/* Neue Sub-Metrics Styles */
+.sub-metrics {
+    margin-top: auto; /* Drückt es nach unten wenn Höhe fix wäre, sonst einfach Abstand */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    background: rgba(0,0,0,0.03);
+    padding: 10px 15px;
+    border-radius: 8px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.card-stats .metric p {
-    font-size: 1.5rem;
-    display: block; /* Standard Block */
+[data-theme='dark'] .sub-metrics {
+    background: rgba(255,255,255,0.05);
 }
 
-.card-stats .metric p span {
-    font-size: 0.75rem; /* Etwas kleiner für Stats Card */
-    display: inline; /* Daneben */
-    margin-left: 5px;
-    margin-top: 0;
+.sub-metrics div {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-variant-numeric: tabular-nums; 
 }
 
 

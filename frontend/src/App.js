@@ -29,7 +29,13 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [lastResult, setLastResult] = useState(null);
   const [error, setError] = useState(null);
-  const [averages, setAverages] = useState({ download: 0, upload: 0, ping: 0 });
+  
+  // Erweiterter State für Statistiken (Avg, Min, Max)
+  const [stats, setStats] = useState({
+    download: { avg: 0, min: 0, max: 0 },
+    upload: { avg: 0, min: 0, max: 0 },
+    ping: { avg: 0, min: 0, max: 0 }
+  });
   
   // Neuer State für die Live-Werte aller Metriken gleichzeitig
   const [currentTestValues, setCurrentTestValues] = useState({ download: 0, upload: 0, ping: 0 });
@@ -84,19 +90,31 @@ function App() {
     localStorage.setItem('theme', nextTheme);
   };
 
-  const calculateAverages = (testHistory) => {
+  // Erweiterte Statistik-Berechnung
+  const calculateStats = (testHistory) => {
     if (testHistory.length === 0) {
-      setAverages({ download: 0, upload: 0, ping: 0 });
-      return;
+        setStats({
+            download: { avg: 0, min: 0, max: 0 },
+            upload: { avg: 0, min: 0, max: 0 },
+            ping: { avg: 0, min: 0, max: 0 }
+        });
+        return;
     }
-    const totalDownload = testHistory.reduce((sum, test) => sum + test.download, 0);
-    const totalUpload = testHistory.reduce((sum, test) => sum + test.upload, 0);
-    const totalPing = testHistory.reduce((sum, test) => sum + test.ping, 0);
 
-    setAverages({
-      download: totalDownload / testHistory.length,
-      upload: totalUpload / testHistory.length,
-      ping: totalPing / testHistory.length,
+    const getStats = (key) => {
+        const values = testHistory.map(t => t[key]);
+        const sum = values.reduce((a, b) => a + b, 0);
+        return {
+            avg: sum / values.length,
+            min: Math.min(...values),
+            max: Math.max(...values)
+        };
+    };
+
+    setStats({
+        download: getStats('download'),
+        upload: getStats('upload'),
+        ping: getStats('ping')
     });
   };
 
@@ -107,7 +125,7 @@ function App() {
       if (response.data.length > 0) {
         setLastResult(response.data[0]);
       }
-      calculateAverages(response.data);
+      calculateStats(response.data); // Neue Funktion nutzen
     } catch (err) {
       console.error("Fehler beim Abrufen des Verlaufs", err);
     }
@@ -325,120 +343,124 @@ function App() {
         {error && <p style={{color: 'red', marginTop: '10px'}}>{error}</p>}
       </div>
 
-      {/* VEREINFACHTES LAYOUT: ALLES UNTEREINANDER, AUSSER CHARTS */}
+      {/* HAUPTBEREICH: Combined Metrics (Last Result + Stats) */}
+      {displayData && (
+        <div className="card card-main">
+          <h2>{resultCardTitle}</h2>
+          
+          {/* Datum/Server Zeile ist entfernt, wie gewünscht */}
+          {loading && (
+             <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic'}}>
+               Ermittle Daten...
+             </p>
+          )}
+
+          <div className="results-grid">
+            {/* DOWNLOAD */}
+            <div className="metric">
+              <h3>Download</h3>
+              <p>{displayData.download?.toFixed(2) || '0.00'} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
+              
+              {history.length > 0 && (
+                  <div className="sub-metrics">
+                      <div title="Durchschnitt">Ø {stats.download.avg.toFixed(2)}</div>
+                      <div title="Minimum">Min {stats.download.min.toFixed(2)}</div>
+                      <div title="Maximum">Max {stats.download.max.toFixed(2)}</div>
+                  </div>
+              )}
+            </div>
+
+            {/* UPLOAD */}
+            <div className="metric">
+              <h3>Upload</h3>
+              <p>{displayData.upload?.toFixed(2) || '0.00'} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
+              
+              {history.length > 0 && (
+                  <div className="sub-metrics">
+                      <div>Ø {stats.upload.avg.toFixed(2)}</div>
+                      <div>Min {stats.upload.min.toFixed(2)}</div>
+                      <div>Max {stats.upload.max.toFixed(2)}</div>
+                  </div>
+              )}
+            </div>
+
+            {/* PING */}
+            <div className="metric">
+              <h3>Ping</h3>
+              <p>{displayData.ping?.toFixed(0) || '0'} <br/> <span style={{fontSize: '0.6em'}}>ms</span></p>
+              
+              {history.length > 0 && (
+                  <div className="sub-metrics">
+                      <div>Ø {stats.ping.avg.toFixed(0)}</div>
+                      <div>Min {stats.ping.min.toFixed(0)}</div>
+                      <div>Max {stats.ping.max.toFixed(0)}</div>
+                  </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
-        {/* 1. MAIN CARD */}
-        {displayData && (
-          <div className="card">
-            <h2>{resultCardTitle}</h2>
-            
-            {!loading && displayData.timestamp && (
-              <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
-                {new Date(displayData.timestamp).toLocaleString()} - Server: {displayData.serverLocation} ({displayData.isp})
-              </p>
-            )}
-            {loading && (
-               <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic'}}>
-                 Ermittle Daten...
-               </p>
-            )}
+      {/* DIE SEPARATE STATS CARD IST HIER ENTFERNT WORDEN */}
 
-            <div className="results-grid">
-              <div className="metric">
-                <h3>Download</h3>
-                <p>{displayData.download?.toFixed(2) || '0.00'} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
-              </div>
-              <div className="metric">
-                <h3>Upload</h3>
-                <p>{displayData.upload?.toFixed(2) || '0.00'} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
-              </div>
-              <div className="metric">
-                <h3>Ping</h3>
-                <p>{displayData.ping?.toFixed(0) || '0'} <br/> <span style={{fontSize: '0.6em'}}>ms</span></p>
-              </div>
-            </div>
+      {/* CHARTS WRAPPER */}
+      {history.length > 0 && (
+        <div className="charts-row">
+          <div className="card chart-container">
+            <Line key={`speed-${theme}`} options={speedOptions} data={speedData} />
           </div>
-        )}
-        
-        {/* 2. STATS CARD */}
-        {history.length > 0 && (
-          <div className="card card-stats">
-            <h2>Durchschnitt</h2>
-            <div className="stats-grid">
-              <div className="metric">
-                <h3>Download Ø</h3>
-                <p>{averages.download.toFixed(2)} <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
-              </div>
-              <div className="metric">
-                <h3>Upload Ø</h3>
-                <p>{averages.upload.toFixed(2)} <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
-              </div>
-              <div className="metric">
-                <h3>Ping Ø</h3>
-                <p>{averages.ping.toFixed(0)} <span style={{fontSize: '0.6em'}}>ms</span></p>
-              </div>
-            </div>
+          <div className="card chart-container">
+            <Line key={`ping-${theme}`} options={pingOptions} data={pingData} />
           </div>
-        )}
+        </div>
+      )}
 
-        {/* 3. CHARTS WRAPPER */}
-        {history.length > 0 && (
-          <div className="charts-row">
-            <div className="card chart-container">
-              <Line key={`speed-${theme}`} options={speedOptions} data={speedData} />
-            </div>
-            <div className="card chart-container">
-              <Line key={`ping-${theme}`} options={pingOptions} data={pingData} />
-            </div>
+      {/* LIST CARD */}
+      {history.length > 0 && (
+        <div className="card">
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+              <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte 5 Tests</h2>
+              <a href="http://localhost:5000/api/export" target="_blank" rel="noopener noreferrer" style={{color: '#667eea', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold'}}>
+                  CSV Export ⬇
+              </a>
           </div>
-        )}
-
-        {/* 4. LIST CARD */}
-        {history.length > 0 && (
-          <div className="card">
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte 5 Tests</h2>
-                <a href="http://localhost:5000/api/export" target="_blank" rel="noopener noreferrer" style={{color: '#667eea', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold'}}>
-                    CSV Export ⬇
-                </a>
-            </div>
-            
-            <div className="recent-tests-table-header">
-                <div className="header-time">Uhrzeit</div>
-                <div className="header-server">Server</div>
-                <div className="header-download">Download</div>
-                <div className="header-upload">Upload</div>
-                <div className="header-ping">Ping</div>
-            </div>
-
-            <ul className="recent-tests-list"> 
-              {history.slice(0, 5).map((test, index) => (
-                <li key={test.id} className="recent-tests-row">
-                  <div className="row-time">
-                    {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
-                  </div>
-                  
-                  <div className="row-server" title={test.serverLocation}>
-                    {test.serverLocation}
-                  </div>
-
-                  <div className="row-metric download">
-                    <span className="icon">⬇</span> {test.download.toFixed(0)} <small>MBit/s</small>
-                  </div>
-                  
-                  <div className="row-metric upload">
-                    <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>MBit/s</small>
-                  </div>
-                  
-                  <div className="row-metric ping">
-                    <span className="icon">⚡</span> {test.ping.toFixed(0)} <small>ms</small>
-                  </div>
-                </li>
-              ))}
-            </ul>
+          
+          <div className="recent-tests-table-header">
+              <div className="header-time">Uhrzeit</div>
+              <div className="header-server">Server</div>
+              <div className="header-download">Download</div>
+              <div className="header-upload">Upload</div>
+              <div className="header-ping">Ping</div>
           </div>
-        )}
+
+          <ul className="recent-tests-list"> 
+            {history.slice(0, 5).map((test, index) => (
+              <li key={test.id} className="recent-tests-row">
+                <div className="row-time">
+                  {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
+                </div>
+                
+                <div className="row-server" title={test.serverLocation}>
+                  {test.serverLocation}
+                </div>
+
+                <div className="row-metric download">
+                  <span className="icon">⬇</span> {test.download.toFixed(0)} <small>MBit/s</small>
+                </div>
+                
+                <div className="row-metric upload">
+                  <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>MBit/s</small>
+                </div>
+                
+                <div className="row-metric ping">
+                  <span className="icon">⚡</span> {test.ping.toFixed(0)} <small>ms</small>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
