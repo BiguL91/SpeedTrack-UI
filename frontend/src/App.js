@@ -51,6 +51,7 @@ function App() {
   const [cronSchedule, setCronSchedule] = useState('0 * * * *'); // Default
   const [visibleCount, setVisibleCount] = useState(5); // Wie viele Tests anzeigen?
   const [selectedTest, setSelectedTest] = useState(null); // Für Detail-Ansicht
+  const [chartDataLimit, setChartDataLimit] = useState(20); // Wie viele Tests im Chart anzeigen? (0 = Alle)
 
   // Toast Notification State
   const [notification, setNotification] = useState(null); // { message: '', type: 'success' | 'error' }
@@ -357,7 +358,13 @@ function App() {
   };
 
   // Chart-Daten vorbereiten
-  const chartDataReversed = [...history].reverse();
+  // History ist: [Neueste, ..., Älteste]
+  // Wir wollen im Chart: [Älteste, ..., Neueste]
+  // Aber nur die letzten X (chartDataLimit)
+  
+  const chartDataSource = chartDataLimit === 0 ? history : history.slice(0, chartDataLimit);
+  const chartDataReversed = [...chartDataSource].reverse();
+  
   const labels = chartDataReversed.map(item => new Date(item.timestamp).toLocaleTimeString());
 
   // Daten für Geschwindigkeits-Chart
@@ -462,9 +469,7 @@ function App() {
     stacked: false,
     plugins: {
       title: {
-        display: true,
-        text: 'Ping (Latenz) Verlauf',
-        color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#e0e0e0' : '#666'
+        display: false, // Überschrift entfernt
       },
       legend: {
         labels: {
@@ -595,7 +600,32 @@ function App() {
         </div>
       )}
       
-      {/* DIE SEPARATE STATS CARD IST HIER ENTFERNT WORDEN */}
+      {/* CHARTS CONTROLS */}
+      {history.length > 0 && (
+        <div style={{display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px'}}>
+            <span style={{fontWeight: '600', color: 'var(--text-secondary)', alignSelf: 'center'}}>Chart-Ansicht:</span>
+            {[5, 10, 20, 50, 0].map(limit => (
+                <button 
+                    key={limit}
+                    onClick={() => setChartDataLimit(limit)}
+                    style={{
+                        background: chartDataLimit === limit ? 'var(--primary-gradient)' : 'var(--metric-bg)',
+                        color: chartDataLimit === limit ? 'white' : 'var(--text-color)',
+                        border: '1px solid var(--border-color)',
+                        padding: '5px 12px',
+                        borderRadius: '15px',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        boxShadow: chartDataLimit === limit ? '0 2px 5px rgba(0,0,0,0.2)' : 'none',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    {limit === 0 ? 'Alle' : limit}
+                </button>
+            ))}
+        </div>
+      )}
 
       {/* CHARTS WRAPPER */}
       {history.length > 0 && (
