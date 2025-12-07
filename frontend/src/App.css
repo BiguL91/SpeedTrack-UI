@@ -194,22 +194,34 @@ button.start-btn:disabled {
   line-height: 1;
   background: var(--bg-gradient);
   -webkit-background-clip: text; 
+  /* NEU: Flexbox für Wert und Einheit */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Kleinere Metriken für Stats Card */
-.card-stats .metric {
-    padding: 15px;
-}
-.card-stats .metric p {
-    font-size: 1.5rem;
-}
-
-.metric span {
-  font-size: 0.9rem;
+.metric p span {
+  font-size: 0.9rem; /* Ursprüngliche Größe für Main Card */
   font-weight: 500;
   color: var(--text-secondary);
-  margin-left: 5px;
+  margin-left: 0; /* Einheit steht darunter */
+  margin-top: 5px; /* Abstand zwischen Wert und Einheit */
 }
+
+/* Kleinere Metriken für Stats Card - Hier bleiben die Einheiten daneben */
+.card-stats .metric p {
+    font-size: 1.5rem;
+    flex-direction: row; /* Einheit wieder daneben */
+    align-items: baseline;
+    justify-content: center;
+}
+.card-stats .metric p span {
+    font-size: 0.75rem; /* Etwas kleiner für Stats Card */
+    margin-left: 5px; /* Wieder den Margin links für die Anzeige daneben */
+    margin-top: 0;
+}
+
 
 /* List Styles: SINGLE LINE LAYOUT */
 .recent-tests-list {
