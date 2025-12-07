@@ -75,8 +75,6 @@ app.get('/api/test/stream', (req, res) => {
   console.log('Starte Live-Speedtest...');
   
   // Wir nutzen spawn für Streaming-Output
-  // Hinweis: Wir nutzen KEIN JSON-Format, da dies kein Live-Update liefert.
-  // Wir parsen den Text-Output.
   const speedtest = spawn('speedtest', ['--accept-license', '--accept-gdpr', '--progress=yes']);
 
   let buffer = '';
@@ -97,23 +95,26 @@ app.get('/api/test/stream', (req, res) => {
 
     // --- Live Parsing ---
     
-    // Ping: "Latency:    13.00 ms"
-    const pingMatch = text.match(/Latency:\s+([\d\.]+)\s+ms/);
+    // Ping: "Latency: 13.00 ms" oder "Idle Latency: 24.58 ms"
+    // Regex sucht nach Optional "Idle " gefolgt von "Latency:"
+    const pingMatch = text.match(/(?:Idle\s+)?Latency:\s+([\d\.]+)\s+ms/i);
     if (pingMatch) {
        const val = parseFloat(pingMatch[1]);
-       finalResult.ping = val;
-       res.write(`data: ${JSON.stringify({ type: 'progress', phase: 'ping', value: val })}\n\n`);
+       if (val > 0) {
+          finalResult.ping = val;
+          res.write(`data: ${JSON.stringify({ type: 'progress', phase: 'ping', value: val })}\n\n`);
+       }
     }
 
     // Download: "Download:    45.34 Mbps"
-    const downloadMatch = text.match(/Download:\s+([\d\.]+)\s+Mbps/);
+    const downloadMatch = text.match(/Download:\s+([\d\.]+)\s+Mbps/i);
     if (downloadMatch) {
        const val = parseFloat(downloadMatch[1]);
        res.write(`data: ${JSON.stringify({ type: 'progress', phase: 'download', value: val })}\n\n`);
     }
 
     // Upload: "Upload:    12.00 Mbps"
-    const uploadMatch = text.match(/Upload:\s+([\d\.]+)\s+Mbps/);
+    const uploadMatch = text.match(/Upload:\s+([\d\.]+)\s+Mbps/i);
     if (uploadMatch) {
        const val = parseFloat(uploadMatch[1]);
        res.write(`data: ${JSON.stringify({ type: 'progress', phase: 'upload', value: val })}\n\n`);
@@ -149,6 +150,13 @@ app.get('/api/test/stream', (req, res) => {
     if (packetLossMatch) finalResult.packetLoss = parseFloat(packetLossMatch[1]);
 
     // Finale Werte sicherstellen (das letzte gefundene im Buffer ist das Endergebnis)
+    
+    // Ping Fallback falls Live-Parsing 0 war
+    if (finalResult.ping === 0) {
+        const allPings = [...buffer.matchAll(/(?:Idle\s+)?Latency:\s+([\d\.]+)\s+ms/gi)];
+        if (allPings.length > 0) finalResult.ping = parseFloat(allPings[allPings.length - 1][1]);
+    }
+
     const allDownloads = [...buffer.matchAll(/Download:\s+([\d\.]+)\s+Mbps/g)];
     if (allDownloads.length > 0) finalResult.download = parseFloat(allDownloads[allDownloads.length - 1][1]);
 
@@ -170,7 +178,7 @@ app.get('/api/test/stream', (req, res) => {
         finalResult.packetLoss || 0, 
         finalResult.isp, 
         finalResult.serverLocation, 
-        'Unbekannt' // Country ist im Text-Output schwer zu isolieren ohne komplexe Logik
+        'Unbekannt'
     ];
     
     db.run(insertSql, params, function(err) {
