@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  speedtest-tracker:
+    build: .
+    container_name: speedtest-tracker
+    restart: unless-stopped
+    ports:
+      - "8080:5000" # Erreichbar unter http://localhost:8080
+    environment:
+      - PORT=5000
+      - CRON_SCHEDULE=0 * * * *
+    volumes:
+      - ./data:/app/data # Für persistente DB (optional, müsste im Code angepasst werden um DB in /app/data zu legen)
