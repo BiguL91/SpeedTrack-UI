@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 require('dotenv').config();
@@ -60,62 +60,129 @@ app.get('/api/history', (req, res) => {
   });
 });
 
-// Speedtest ausführen
+// Alter Endpunkt (Fallback)
 app.post('/api/test', (req, res) => {
-  console.log('Starte Speedtest...');
-  // Führe Ookla CLI-Befehl aus
-  // Hinweis: --accept-license und --accept-gdpr sind oft für den ersten nicht-interaktiven Lauf erforderlich
-  exec('speedtest --format=json --accept-license --accept-gdpr', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Ausführungsfehler: ${error}`);
-      return res.status(500).json({ error: 'Speedtest konnte nicht ausgeführt werden', details: stderr });
+    // ... alter code falls nötig, aber wir nutzen jetzt stream ...
+    res.status(400).send("Bitte nutze /api/test/stream");
+});
+
+// NEUER Live-Streaming Endpunkt (SSE)
+app.get('/api/test/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  console.log('Starte Live-Speedtest...');
+  
+  // Wir nutzen spawn für Streaming-Output
+  // Hinweis: Wir nutzen KEIN JSON-Format, da dies kein Live-Update liefert.
+  // Wir parsen den Text-Output.
+  const speedtest = spawn('speedtest', ['--accept-license', '--accept-gdpr', '--progress=yes']);
+
+  let buffer = '';
+  
+  let finalResult = {
+    ping: 0,
+    download: 0,
+    upload: 0,
+    packetLoss: 0,
+    isp: 'Unbekannt',
+    serverLocation: 'Unbekannt',
+    serverCountry: ''
+  };
+
+  speedtest.stdout.on('data', (data) => {
+    const text = data.toString();
+    buffer += text;
+
+    // --- Live Parsing ---
+    
+    // Ping: "Latency:    13.00 ms"
+    const pingMatch = text.match(/Latency:\s+([\d\.]+)\s+ms/);
+    if (pingMatch) {
+       const val = parseFloat(pingMatch[1]);
+       finalResult.ping = val;
+       res.write(`data: ${JSON.stringify({ type: 'progress', phase: 'ping', value: val })}\n\n`);
     }
 
-    try {
-      const result = JSON.parse(stdout);
-      
-      // Relevante Daten extrahieren
-      // Bandbreite ist in Bytes/Sekunde. Umrechnung in Mbps: (Bytes * 8) / 1.000.000
-      const downloadMbps = (result.download.bandwidth * 8) / 1000000;
-      const uploadMbps = (result.upload.bandwidth * 8) / 1000000;
-      const pingMs = result.ping.latency;
-      const packetLoss = result.packetLoss || 0;
-      const isp = result.isp;
-      const serverLocation = result.server.location;
-      const serverCountry = result.server.country;
-      const timestamp = new Date().toISOString();
+    // Download: "Download:    45.34 Mbps"
+    const downloadMatch = text.match(/Download:\s+([\d\.]+)\s+Mbps/);
+    if (downloadMatch) {
+       const val = parseFloat(downloadMatch[1]);
+       res.write(`data: ${JSON.stringify({ type: 'progress', phase: 'download', value: val })}\n\n`);
+    }
 
-      // In Datenbank speichern
-      const insertSql = `
+    // Upload: "Upload:    12.00 Mbps"
+    const uploadMatch = text.match(/Upload:\s+([\d\.]+)\s+Mbps/);
+    if (uploadMatch) {
+       const val = parseFloat(uploadMatch[1]);
+       res.write(`data: ${JSON.stringify({ type: 'progress', phase: 'upload', value: val })}\n\n`);
+    }
+  });
+
+  speedtest.stderr.on('data', (data) => {
+      // Fehler im Stream ignorieren wir für den User, loggen sie aber
+      console.error(`CLI Error: ${data}`);
+  });
+
+  speedtest.on('close', (code) => {
+    console.log(`Speedtest beendet mit Code ${code}`);
+
+    if (code !== 0) {
+        res.write(`data: ${JSON.stringify({ type: 'error', message: 'Speedtest CLI fehlgeschlagen' })}\n\n`);
+        res.end();
+        return;
+    }
+
+    // --- Finales Parsing aus dem Gesamt-Buffer ---
+    
+    // ISP
+    const ispMatch = buffer.match(/ISP:\s+(.+)/);
+    if (ispMatch) finalResult.isp = ispMatch[1].trim();
+    
+    // Server
+    const serverMatch = buffer.match(/Server:\s+(.+)/);
+    if (serverMatch) finalResult.serverLocation = serverMatch[1].trim();
+    
+    // Packet Loss
+    const packetLossMatch = buffer.match(/Packet Loss:\s+([\d\.]+)%/);
+    if (packetLossMatch) finalResult.packetLoss = parseFloat(packetLossMatch[1]);
+
+    // Finale Werte sicherstellen (das letzte gefundene im Buffer ist das Endergebnis)
+    const allDownloads = [...buffer.matchAll(/Download:\s+([\d\.]+)\s+Mbps/g)];
+    if (allDownloads.length > 0) finalResult.download = parseFloat(allDownloads[allDownloads.length - 1][1]);
+
+    const allUploads = [...buffer.matchAll(/Upload:\s+([\d\.]+)\s+Mbps/g)];
+    if (allUploads.length > 0) finalResult.upload = parseFloat(allUploads[allUploads.length - 1][1]);
+    
+    // DB Speichern
+    const timestamp = new Date().toISOString();
+    const insertSql = `
         INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-      
-      const params = [timestamp, pingMs, downloadMbps, uploadMbps, packetLoss, isp, serverLocation, serverCountry];
-
-      db.run(insertSql, params, function(err) {
+    `;
+    
+    const params = [
+        timestamp, 
+        finalResult.ping || 0, 
+        finalResult.download || 0, 
+        finalResult.upload || 0, 
+        finalResult.packetLoss || 0, 
+        finalResult.isp, 
+        finalResult.serverLocation, 
+        'Unbekannt' // Country ist im Text-Output schwer zu isolieren ohne komplexe Logik
+    ];
+    
+    db.run(insertSql, params, function(err) {
         if (err) {
           console.error(err.message);
-          return res.status(500).json({ error: 'Fehler beim Speichern der Ergebnisse' });
+          res.write(`data: ${JSON.stringify({ type: 'error', message: 'DB Speicherfehler' })}\n\n`);
+        } else {
+          // Erfolg! Sende das finale Objekt an Frontend
+          res.write(`data: ${JSON.stringify({ type: 'done', result: { ...finalResult, timestamp, id: this.lastID } })}\n\n`);
         }
-        
-        res.json({
-          id: this.lastID,
-          timestamp,
-          ping: pingMs,
-          download: downloadMbps,
-          upload: uploadMbps,
-          packetLoss,
-          isp,
-          serverLocation,
-          serverCountry
-        });
-      });
-
-    } catch (parseError) {
-      console.error('Fehler beim Parsen der Ausgabe:', parseError);
-      res.status(500).json({ error: 'Fehler beim Verarbeiten der Speedtest-Ausgabe' });
-    }
+        res.end();
+    });
   });
 });
 

@@ -29,7 +29,10 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [lastResult, setLastResult] = useState(null);
   const [error, setError] = useState(null);
-  const [averages, setAverages] = useState({ download: 0, upload: 0, ping: 0 }); // Neuer State für Durchschnittswerte
+  const [averages, setAverages] = useState({ download: 0, upload: 0, ping: 0 });
+  
+  // Neuer State für Live-Daten
+  const [liveData, setLiveData] = useState({ phase: null, value: 0 }); 
   
   // Theme State: 'light', 'dark', oder 'auto'
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'auto');
@@ -81,7 +84,6 @@ function App() {
     localStorage.setItem('theme', nextTheme);
   };
 
-  // Funktion zur Berechnung der Durchschnittswerte
   const calculateAverages = (testHistory) => {
     if (testHistory.length === 0) {
       setAverages({ download: 0, upload: 0, ping: 0 });
@@ -98,7 +100,6 @@ function App() {
     });
   };
 
-
   const fetchHistory = async () => {
     try {
       const response = await axios.get('http://localhost:5000/api/history');
@@ -106,7 +107,7 @@ function App() {
       if (response.data.length > 0) {
         setLastResult(response.data[0]);
       }
-      calculateAverages(response.data); // Durchschnittswerte nach dem Abrufen des Verlaufs berechnen
+      calculateAverages(response.data);
     } catch (err) {
       console.error("Fehler beim Abrufen des Verlaufs", err);
     }
@@ -116,27 +117,54 @@ function App() {
     fetchHistory();
   }, []);
 
-  const runTest = async () => {
+  // Neue runTest Funktion mit SSE
+  const runTest = () => {
     setLoading(true);
     setError(null);
-    try {
-      const response = await axios.post('http://localhost:5000/api/test');
-      setLastResult(response.data);
-      await fetchHistory(); // Verlauf aktualisieren
-    } catch (err) {
-      setError("Test fehlgeschlagen. Bitte stelle sicher, dass das Backend läuft und die Speedtest CLI installiert ist.");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    setLiveData({ phase: 'init', value: 0 });
+
+    const eventSource = new EventSource('http://localhost:5000/api/test/stream');
+
+    eventSource.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+
+            if (data.type === 'progress') {
+                setLiveData({ phase: data.phase, value: data.value });
+            } else if (data.type === 'done') {
+                setLastResult(data.result);
+                fetchHistory(); // Verlauf aktualisieren
+                eventSource.close();
+                setLoading(false);
+                setLiveData({ phase: null, value: 0 });
+            } else if (data.type === 'error') {
+                setError(data.message);
+                eventSource.close();
+                setLoading(false);
+            }
+        } catch (e) {
+            console.error("Fehler beim Parsen der SSE Daten", e);
+        }
+    };
+
+    eventSource.onerror = (err) => {
+        // Bei SSE ist onerror oft ungenau. Wir schließen und zeigen Fehler nur wenn wir noch laden.
+        console.error("SSE Error:", err);
+        if (eventSource.readyState === EventSource.CLOSED) return;
+        
+        eventSource.close();
+        setLoading(false);
+        // Wir setzen keinen harten Error Text hier, da Browser oft beim Schließen (Ende) einen Fehler werfen
+        // außer wir haben noch kein Ergebnis.
+        if (!lastResult && liveData.phase === 'init') {
+            setError("Verbindung zum Test-Stream unterbrochen.");
+        }
+    };
   };
 
   // Chart-Daten vorbereiten
   const chartDataReversed = [...history].reverse();
   const labels = chartDataReversed.map(item => new Date(item.timestamp).toLocaleTimeString());
-
-  // Key erzwingt Neu-Rendern der Charts bei Theme-Wechsel
-  const chartKey = theme; 
 
   // Daten für Geschwindigkeits-Chart
   const speedData = {
@@ -148,6 +176,7 @@ function App() {
         borderColor: 'rgb(53, 162, 235)',
         backgroundColor: 'rgba(53, 162, 235, 0.5)',
         yAxisID: 'y',
+        tension: 0.3, // Etwas weichere Kurven für modernen Look
       },
       {
         label: 'Upload (Mbps)',
@@ -155,6 +184,7 @@ function App() {
         borderColor: 'rgb(255, 99, 132)',
         backgroundColor: 'rgba(255, 99, 132, 0.5)',
         yAxisID: 'y',
+        tension: 0.3,
       },
     ],
   };
@@ -169,6 +199,7 @@ function App() {
         borderColor: 'rgb(75, 192, 192)',
         backgroundColor: 'rgba(75, 192, 192, 0.5)',
         yAxisID: 'y',
+        tension: 0.3,
       },
     ],
   };
@@ -269,48 +300,60 @@ function App() {
         <button className="start-btn" onClick={runTest} disabled={loading}>
           {loading ? 'Speedtest läuft...' : 'Neuen Test starten'}
         </button>
-        {loading && <p className="loader">Das kann bis zu 30 Sekunden dauern...</p>}
-        {error && <p style={{color: 'red'}}>{error}</p>}
+        {error && <p style={{color: 'red', marginTop: '10px'}}>{error}</p>}
       </div>
 
-      {history.length > 0 && ( // Durchschnittswerte nur anzeigen, wenn Verlaufsdaten vorhanden sind
+      {/* LIVE ANZEIGE */}
+      {loading && (
+        <div className="card live-card">
+            <h2>Live Test</h2>
+            <div className="live-display">
+                <p className="live-phase">{liveData.phase === 'init' ? 'Initialisiere...' : liveData.phase}</p>
+                <p className="live-value">{liveData.value.toFixed(1)}</p>
+                <p className="live-unit">{liveData.phase === 'ping' ? 'ms' : 'Mbps'}</p>
+            </div>
+        </div>
+      )}
+
+      {/* Durchschnittswerte */}
+      {history.length > 0 && !loading && (
         <div className="card">
           <h2>Durchschnittliche Werte</h2>
-          <div className="results-grid"> {/* Wiederverwendung von results-grid für das Layout */}
+          <div className="results-grid">
             <div className="metric">
               <h3>Durchschnitt Download</h3>
-              <p>{averages.download.toFixed(2)} <span style={{fontSize: '0.5em'}}>Mbps</span></p>
+              <p>{averages.download.toFixed(2)} <span>Mbps</span></p>
             </div>
             <div className="metric">
               <h3>Durchschnitt Upload</h3>
-              <p>{averages.upload.toFixed(2)} <span style={{fontSize: '0.5em'}}>Mbps</span></p>
+              <p>{averages.upload.toFixed(2)} <span>Mbps</span></p>
             </div>
             <div className="metric">
               <h3>Durchschnitt Ping</h3>
-              <p>{averages.ping.toFixed(0)} <span style={{fontSize: '0.5em'}}>ms</span></p>
+              <p>{averages.ping.toFixed(0)} <span>ms</span></p>
             </div>
           </div>
         </div>
       )}
 
-      {lastResult && (
+      {lastResult && !loading && (
         <div className="card">
           <h2>Letztes Ergebnis</h2>
-          <p style={{fontSize: '0.8em', color: 'var(--subtitle-color)'}}>
+          <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
             {new Date(lastResult.timestamp).toLocaleString()} - Server: {lastResult.serverLocation} ({lastResult.isp})
           </p>
           <div className="results-grid">
             <div className="metric">
               <h3>Download</h3>
-              <p>{lastResult.download.toFixed(2)} <span style={{fontSize: '0.5em'}}>Mbps</span></p>
+              <p>{lastResult.download.toFixed(2)} <span>Mbps</span></p>
             </div>
             <div className="metric">
               <h3>Upload</h3>
-              <p>{lastResult.upload.toFixed(2)} <span style={{fontSize: '0.5em'}}>Mbps</span></p>
+              <p>{lastResult.upload.toFixed(2)} <span>Mbps</span></p>
             </div>
             <div className="metric">
               <h3>Ping</h3>
-              <p>{lastResult.ping.toFixed(0)} <span style={{fontSize: '0.5em'}}>ms</span></p>
+              <p>{lastResult.ping.toFixed(0)} <span>ms</span></p>
             </div>
           </div>
         </div>
@@ -324,17 +367,16 @@ function App() {
               {history.slice(0, 5).map((test, index) => (
                 <div key={test.id} className="recent-test-item">
                   <p><strong>{new Date(test.timestamp).toLocaleString()}</strong></p>
-                  <p>Server: {test.serverLocation} ({test.isp})</p>
-                  <p>Download: {test.download.toFixed(2)} Mbps</p>
-                  <p>Upload: {test.upload.toFixed(2)} Mbps</p>
-                  <p>Ping: {test.ping.toFixed(0)} ms</p>
-                  {index < 4 && <hr/>}
+                  <p style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>{test.serverLocation}</p>
+                  <hr/>
+                  <p>Down: <strong>{test.download.toFixed(0)}</strong> Mbps</p>
+                  <p>Up: <strong>{test.upload.toFixed(0)}</strong> Mbps</p>
+                  <p>Ping: <strong>{test.ping.toFixed(0)}</strong> ms</p>
                 </div>
               ))}
             </div>
           </div>
           <div className="card chart-container">
-            {/* Key prop ensures charts re-render when theme changes */}
             <Line key={`speed-${theme}`} options={speedOptions} data={speedData} />
           </div>
           <div className="card chart-container">
