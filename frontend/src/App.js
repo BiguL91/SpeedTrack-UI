@@ -8,7 +8,8 @@ import {
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import zoomPlugin from 'chartjs-plugin-zoom';
@@ -22,6 +23,7 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
+  Filler,
   zoomPlugin
 );
 
@@ -48,6 +50,106 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [cronSchedule, setCronSchedule] = useState('0 * * * *'); // Default
 
+  // Toast Notification State
+  const [notification, setNotification] = useState(null); // { message: '', type: 'success' | 'error' }
+
+  const showToast = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => {
+      setNotification(null);
+    }, 3000); // Nach 3 Sekunden ausblenden
+  };
+
+  const getNextRunTime = () => {
+    if (!cronSchedule) return 'Lädt...';
+
+    try {
+      const now = new Date();
+      let next = new Date(now);
+      
+      // Einfacher Parser für unsere spezifischen Dropdown-Werte
+      if (cronSchedule === '*/10 * * * *') {
+        // Nächste 10 Minuten Marke
+        const minutes = now.getMinutes();
+        const remainder = minutes % 10;
+        next.setMinutes(minutes + (10 - remainder));
+        next.setSeconds(0);
+        next.setMilliseconds(0);
+      }
+      else if (cronSchedule === '*/30 * * * *') {
+        // Nächste 30 Minuten Marke
+        const minutes = now.getMinutes();
+        const remainder = minutes % 30;
+        next.setMinutes(minutes + (30 - remainder));
+        next.setSeconds(0);
+        next.setMilliseconds(0);
+      } 
+      else if (cronSchedule === '0 * * * *') {
+        // Nächste volle Stunde
+        next.setHours(now.getHours() + 1);
+        next.setMinutes(0);
+        next.setSeconds(0);
+        next.setMilliseconds(0);
+      }
+      else if (cronSchedule.startsWith('0 */')) {
+        // Alle X Stunden (z.B. "0 */4 * * *")
+        const parts = cronSchedule.split(' ');
+        const hourPart = parts[1]; // "*/4"
+        const interval = parseInt(hourPart.split('/')[1]); // 4
+        
+        // Finde nächste Stunde, die durch interval teilbar ist (vereinfacht: einfach + interval ab jetzt, oder sauberer am Tag ausgerichtet)
+        // Wir machen es einfach: Nächste volle Stunde + Rest bis zum Intervall
+        // Besser: Wir nehmen an, es läuft ab 0 Uhr. 
+        // Aktuelle Stunde 14, Intervall 4. -> 0, 4, 8, 12, 16. Nächster ist 16.
+        const currentHour = now.getHours();
+        let nextHour = currentHour + 1;
+        while (nextHour % interval !== 0) {
+            nextHour++;
+        }
+        
+        // Wenn wir über 24h gehen, ist es morgen
+        if (nextHour >= 24) {
+             next.setDate(now.getDate() + 1);
+             next.setHours(nextHour - 24);
+        } else {
+             next.setHours(nextHour);
+        }
+        next.setMinutes(0);
+        next.setSeconds(0);
+        next.setMilliseconds(0);
+      }
+      else if (cronSchedule === '0 0 * * *') {
+        // Morgen 00:00
+        next.setDate(now.getDate() + 1);
+        next.setHours(0);
+        next.setMinutes(0);
+        next.setSeconds(0);
+        next.setMilliseconds(0);
+      } 
+      else {
+        // Fallback für unbekannte Patterns (wir zeigen einfach nichts an oder den Rohwert)
+        return cronSchedule; 
+      }
+
+      // Formatierung
+      const isToday = next.getDate() === now.getDate() && next.getMonth() === now.getMonth() && next.getFullYear() === now.getFullYear();
+      const isTomorrow = new Date(now.getTime() + 86400000).getDate() === next.getDate();
+      const timeStr = next.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      if (isToday) {
+        return `Heute, ${timeStr} Uhr`;
+      } else if (isTomorrow) {
+        return `Morgen, ${timeStr} Uhr`;
+      } else {
+        return `${next.toLocaleDateString()} ${timeStr} Uhr`;
+      }
+
+    } catch (err) {
+      console.error("Custom Parser Fehler:", err);
+      return cronSchedule;
+    }
+  };
+
   const fetchSettings = useCallback(async () => {
     try {
         const response = await axios.get('/api/settings');
@@ -63,9 +165,9 @@ function App() {
         await axios.post('/api/settings', { cron_schedule: newSchedule });
         setCronSchedule(newSchedule);
         setShowSettings(false);
-        alert("Zeitplan erfolgreich gespeichert!");
+        showToast("Zeitplan erfolgreich gespeichert! ✅", "success");
     } catch (err) {
-        alert("Fehler beim Speichern: " + (err.response?.data?.error || err.message));
+        showToast("Fehler beim Speichern: " + (err.response?.data?.error || err.message), "error");
     }
   };
 
@@ -413,6 +515,12 @@ function App() {
              </p>
           )}
 
+          {!loading && (
+             <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '-15px', marginBottom: '20px'}}>
+               ⏰ Nächster Test: <strong>{getNextRunTime()}</strong>
+             </p>
+          )}
+
           <div className="results-grid">
             {/* DOWNLOAD */}
             <div className="metric">
@@ -532,6 +640,7 @@ function App() {
                     onChange={(e) => setCronSchedule(e.target.value)}
                     style={{width: '100%', padding: '10px', marginTop: '10px', marginBottom: '20px'}}
                 >
+                    <option value="*/10 * * * *">Alle 10 Minuten</option>
                     <option value="*/30 * * * *">Alle 30 Minuten</option>
                     <option value="0 * * * *">Jede Stunde</option>
                     <option value="0 */2 * * *">Alle 2 Stunden</option>
@@ -550,6 +659,13 @@ function App() {
                 <button className="start-btn" onClick={() => saveSettings(cronSchedule)}>Speichern</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* TOAST NOTIFICATION */}
+      {notification && (
+        <div className={`toast-notification ${notification.type}`}>
+          {notification.message}
         </div>
       )}
     </div>
