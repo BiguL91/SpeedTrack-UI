@@ -95,10 +95,10 @@ h2 {
 /* Responsive Grid für größere Screens */
 @media (min-width: 900px) {
   .dashboard-grid {
-    grid-template-columns: 1fr 1fr; /* Zwei gleich große Spalten */
+    grid-template-columns: 1.5fr 1fr; /* Links (Main) breiter als Rechts (Stats) */
     grid-template-areas: 
-      "main list"   /* Links: Main, Rechts: Liste */
-      "stats list"  /* Links: Stats (unter Main), Rechts: Liste (geht weiter runter) */
+      "main stats"
+      "list list"
       "chart1 chart1"
       "chart2 chart2";
   }
@@ -167,7 +167,9 @@ button.start-btn:disabled {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center; /* Vertikale Zentrierung des gesamten Inhalts */
   transition: transform 0.2s;
+  min-height: 120px; /* Fixe Höhe für Gleichmäßigkeit */
 }
 
 .metric:hover {
@@ -190,34 +192,35 @@ button.start-btn:disabled {
   font-weight: 800;
   color: var(--text-color);
   margin: 0;
-  line-height: 1;
+  line-height: 1.2;
   background: var(--bg-gradient);
   -webkit-background-clip: text; 
-  /* Flexbox für Wert und Einheit */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  text-align: center; /* Text zentrieren */
 }
 
 .metric p span {
   font-size: 0.9rem; /* Ursprüngliche Größe für Main Card */
   font-weight: 500;
   color: var(--text-secondary);
-  margin-left: 0; /* Einheit steht darunter */
-  margin-top: 5px; /* Abstand zwischen Wert und Einheit */
+  display: block; /* Unter den Wert zwingen */
+  margin-top: 5px;
 }
 
 /* Kleinere Metriken für Stats Card - Hier bleiben die Einheiten daneben */
+.card-stats .metric {
+    min-height: auto; /* Keine fixe Höhe für Stats */
+    padding: 15px;
+}
+
 .card-stats .metric p {
     font-size: 1.5rem;
-    flex-direction: row; /* Einheit wieder daneben */
-    align-items: baseline;
-    justify-content: center;
+    display: block; /* Standard Block */
 }
+
 .card-stats .metric p span {
     font-size: 0.75rem; /* Etwas kleiner für Stats Card */
-    margin-left: 5px; /* Wieder den Margin links für die Anzeige daneben */
+    display: inline; /* Daneben */
+    margin-left: 5px;
     margin-top: 0;
 }
 
