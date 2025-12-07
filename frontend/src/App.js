@@ -543,9 +543,10 @@ function App() {
           )}
 
           {!loading && (
-             <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '-15px', marginBottom: '20px'}}>
-               ⏰ Nächster Test: <strong>{getNextRunTime()}</strong>
-             </p>
+             <div className="next-test-badge">
+               <span className="pulse-dot"></span>
+               Nächster Test: <strong>{getNextRunTime()}</strong>
+             </div>
           )}
 
           <div className="results-grid">
