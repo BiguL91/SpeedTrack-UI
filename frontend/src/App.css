@@ -1,17 +1,48 @@
+:root {
+  --bg-color: #ffffff;
+  --text-color: #333333;
+  --card-bg: #f9f9f9;
+  --card-shadow: rgba(0,0,0,0.1);
+  --metric-bg: #ffffff;
+  --metric-border: #eeeeee;
+  --subtitle-color: #666666;
+  --hr-color: #eeeeee;
+}
+
+[data-theme='dark'] {
+  --bg-color: #121212;
+  --text-color: #e0e0e0;
+  --card-bg: #1e1e1e;
+  --card-shadow: rgba(0,0,0,0.5);
+  --metric-bg: #2c2c2c;
+  --metric-border: #444444;
+  --subtitle-color: #aaaaaa;
+  --hr-color: #444444;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s;
+  margin: 0;
+}
+
 .App {
   text-align: center;
   padding: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   max-width: 1000px;
   margin: 0 auto;
+  position: relative; /* Für absolute Positionierung des Toggles */
 }
 
 .card {
-  background: #f9f9f9;
+  background: var(--card-bg);
   border-radius: 8px;
   padding: 20px;
   margin: 20px 0;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px var(--card-shadow);
+  color: var(--text-color);
 }
 
 .results-grid {
@@ -22,15 +53,15 @@
 }
 
 .metric {
-  background: white;
+  background: var(--metric-bg);
   padding: 15px;
   border-radius: 8px;
-  border: 1px solid #eee;
+  border: 1px solid var(--metric-border);
 }
 
 .metric h3 {
   margin: 0;
-  color: #666;
+  color: var(--subtitle-color);
   font-size: 0.9em;
   text-transform: uppercase;
 }
@@ -39,10 +70,10 @@
   margin: 5px 0 0;
   font-size: 1.5em;
   font-weight: bold;
-  color: #333;
+  color: var(--text-color);
 }
 
-button {
+button.start-btn {
   background-color: #007bff;
   color: white;
   border: none;
@@ -53,12 +84,12 @@ button {
   transition: background-color 0.3s;
 }
 
-button:disabled {
+button.start-btn:disabled {
   background-color: #ccc;
   cursor: not-allowed;
 }
 
-button:hover:not(:disabled) {
+button.start-btn:hover:not(:disabled) {
   background-color: #0056b3;
 }
 
@@ -69,7 +100,7 @@ button:hover:not(:disabled) {
 
 .loader {
   margin-top: 10px;
-  color: #666;
+  color: var(--subtitle-color);
   font-style: italic;
 }
 
@@ -83,13 +114,14 @@ button:hover:not(:disabled) {
 }
 
 .recent-test-item {
-  background: white;
+  background: var(--metric-bg);
   padding: 15px;
   border-radius: 8px;
-  border: 1px solid #eee;
+  border: 1px solid var(--metric-border);
   text-align: left;
-  width: 200px; /* Feste Breite für Konsistenz */
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  width: 200px;
+  box-shadow: 0 1px 3px var(--card-shadow);
+  color: var(--text-color);
 }
 
 .recent-test-item p {
@@ -99,6 +131,23 @@ button:hover:not(:disabled) {
 
 .recent-test-item hr {
   border: none;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--hr-color);
   margin: 10px 0;
+}
+
+/* Theme Toggle Button */
+.theme-toggle-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+
+.theme-toggle {
+  background: var(--card-bg);
+  border: 1px solid var(--metric-border);
+  color: var(--text-color);
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9em;
 }
