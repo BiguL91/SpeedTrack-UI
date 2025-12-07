@@ -115,7 +115,16 @@ function App() {
 
   useEffect(() => {
     fetchHistory();
-  }, []);
+
+    // Auto-Refresh: Alle 30 Sekunden Daten aktualisieren
+    const intervalId = setInterval(() => {
+        if (!loading) {
+            fetchHistory();
+        }
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [loading]);
 
   // Neue runTest Funktion mit SSE
   const runTest = () => {
@@ -291,7 +300,7 @@ function App() {
           color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#e0e0e0' : '#666'
         },
         ticks: { color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#e0e0e0' : '#666' },
-        grid: { color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#444' : '#ddd' }
+        grid: { color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#e0e0e0' : '#666' },
       },
     },
   };
