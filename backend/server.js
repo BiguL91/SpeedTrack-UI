@@ -29,6 +29,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
   } else {
     console.log('Verbunden mit der SQLite-Datenbank.');
     createTable();
+    upgradeDatabase(); // Neue Spalten hinzufügen falls nötig
     createSettingsTable();
   }
 });
@@ -54,6 +55,33 @@ function createSettingsTable() {
       });
     }
   });
+}
+
+function upgradeDatabase() {
+    const columnsToAdd = [
+        { name: 'jitter', type: 'REAL' },
+        { name: 'serverId', type: 'TEXT' },
+        { name: 'serverHost', type: 'TEXT' },
+        { name: 'serverPort', type: 'INTEGER' },
+        { name: 'serverIp', type: 'TEXT' },
+        { name: 'downloadElapsed', type: 'INTEGER' },
+        { name: 'uploadElapsed', type: 'INTEGER' },
+        { name: 'isVpn', type: 'INTEGER' }, // 0 = false, 1 = true
+        { name: 'externalIp', type: 'TEXT' },
+        { name: 'resultUrl', type: 'TEXT' },
+        { name: 'downloadBytes', type: 'INTEGER' },
+        { name: 'uploadBytes', type: 'INTEGER' }
+    ];
+
+    columnsToAdd.forEach(col => {
+        const sql = `ALTER TABLE results ADD COLUMN ${col.name} ${col.type}`;
+        db.run(sql, (err) => {
+            // Fehler ignorieren, wenn Spalte schon existiert (SQLite hat kein "ADD COLUMN IF NOT EXISTS")
+            if (err && !err.message.includes('duplicate column name')) {
+                console.error(`Fehler beim Hinzufügen von ${col.name}:`, err.message);
+            }
+        });
+    });
 }
 
 function createTable() {
@@ -102,18 +130,33 @@ function runScheduledTest() {
       const downloadMbps = (result.download.bandwidth * 8) / 1000000;
       const uploadMbps = (result.upload.bandwidth * 8) / 1000000;
       const pingMs = result.ping.latency;
+      const jitter = result.ping.jitter || 0;
       const packetLoss = result.packetLoss || 0;
       const isp = result.isp;
       const serverLocation = result.server.location;
       const serverCountry = result.server.country;
+      const serverId = result.server.id;
+      const serverHost = result.server.host;
+      const serverPort = result.server.port;
+      const serverIp = result.server.ip;
+      
+      const downloadElapsed = result.download.elapsed;
+      const uploadElapsed = result.upload.elapsed;
+      const isVpn = result.interface.isVpn ? 1 : 0;
+      const externalIp = result.interface.externalIp || null;
+      const resultUrl = result.result.url || null;
+      
+      const downloadBytes = result.download.bytes || 0;
+      const uploadBytes = result.upload.bytes || 0;
+      
       const timestamp = new Date().toISOString();
 
       const insertSql = `
-        INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, jitter, serverId, serverHost, serverPort, serverIp, downloadElapsed, uploadElapsed, isVpn, externalIp, resultUrl, downloadBytes, uploadBytes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
-      const params = [timestamp, pingMs, downloadMbps, uploadMbps, packetLoss, isp, serverLocation, serverCountry];
+      const params = [timestamp, pingMs, downloadMbps, uploadMbps, packetLoss, isp, serverLocation, serverCountry, jitter, serverId, serverHost, serverPort, serverIp, downloadElapsed, uploadElapsed, isVpn, externalIp, resultUrl, downloadBytes, uploadBytes];
 
       db.run(insertSql, params, (err) => {
         if (err) {
@@ -261,17 +304,28 @@ app.get('/api/test/stream', (req, res) => {
   
   let finalResult = {
     ping: 0,
+    jitter: 0,
     download: 0,
     upload: 0,
     packetLoss: 0,
     isp: 'Unbekannt',
     serverLocation: 'Unbekannt',
-    serverCountry: ''
+    serverCountry: '',
+    serverId: null,
+    serverHost: null,
+    serverPort: null,
+    serverIp: null
   };
 
   speedtest.stdout.on('data', (data) => {
     const text = data.toString();
     buffer += text;
+
+    // Versuche Jitter zu finden (Format oft: "Latency: 14.33 ms (0.55 ms jitter)")
+    const jitterMatch = text.match(/([\d\.]+)\s+ms\s+jitter/i);
+    if (jitterMatch) {
+        finalResult.jitter = parseFloat(jitterMatch[1]);
+    }
 
     const pingMatch = text.match(/(?:Idle\s+)?Latency:\s+([\d\.]+)\s+ms/i);
     if (pingMatch) {
@@ -312,8 +366,16 @@ app.get('/api/test/stream', (req, res) => {
     const ispMatch = buffer.match(/ISP:\s+(.+)/);
     if (ispMatch) finalResult.isp = ispMatch[1].trim();
     
-    const serverMatch = buffer.match(/Server:\s+(.+)/);
-    if (serverMatch) finalResult.serverLocation = serverMatch[1].trim();
+    // Server ID und Location versuchen (Format: "Server: Location (id = 12345)")
+    const serverFullMatch = buffer.match(/Server:\s+(.+?)\s+\(id\s*=\s*(\d+)\)/);
+    if (serverFullMatch) {
+        finalResult.serverLocation = serverFullMatch[1].trim();
+        finalResult.serverId = serverFullMatch[2];
+    } else {
+        // Fallback altes Format
+        const serverMatch = buffer.match(/Server:\s+(.+)/);
+        if (serverMatch) finalResult.serverLocation = serverMatch[1].trim();
+    }
     
     const packetLossMatch = buffer.match(/Packet Loss:\s+([\d\.]+)%/);
     if (packetLossMatch) finalResult.packetLoss = parseFloat(packetLossMatch[1]);
@@ -331,8 +393,8 @@ app.get('/api/test/stream', (req, res) => {
     
     const timestamp = new Date().toISOString();
     const insertSql = `
-        INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, jitter, serverId, serverHost, serverPort, serverIp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     const params = [
@@ -343,7 +405,12 @@ app.get('/api/test/stream', (req, res) => {
         finalResult.packetLoss || 0, 
         finalResult.isp, 
         finalResult.serverLocation, 
-        'Unbekannt'
+        'Unbekannt',
+        finalResult.jitter,
+        finalResult.serverId,
+        finalResult.serverHost,
+        finalResult.serverPort,
+        finalResult.serverIp
     ];
     
     db.run(insertSql, params, function(err) {

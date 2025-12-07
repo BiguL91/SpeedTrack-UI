@@ -50,6 +50,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [cronSchedule, setCronSchedule] = useState('0 * * * *'); // Default
   const [visibleCount, setVisibleCount] = useState(5); // Wie viele Tests anzeigen?
+  const [selectedTest, setSelectedTest] = useState(null); // Für Detail-Ansicht
 
   // Toast Notification State
   const [notification, setNotification] = useState(null); // { message: '', type: 'success' | 'error' }
@@ -614,7 +615,7 @@ function App() {
 
           <ul className="recent-tests-list"> 
             {history.slice(0, visibleCount).map((test, index) => (
-              <li key={test.id} className="recent-tests-row">
+              <li key={test.id} className="recent-tests-row" onClick={() => setSelectedTest(test)} style={{cursor: 'pointer'}}>
                 <div className="row-time">
                   {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                   <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
@@ -671,6 +672,129 @@ function App() {
             <div className="modal-actions" style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
                 <button className="start-btn" style={{backgroundColor: '#666'}} onClick={() => setShowSettings(false)}>Abbrechen</button>
                 <button className="start-btn" onClick={() => saveSettings(cronSchedule)}>Speichern</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DETAIL MODAL */}
+      {selectedTest && (
+        <div className="modal-overlay" onClick={() => setSelectedTest(null)}>
+          <div className="modal-content card" onClick={(e) => e.stopPropagation()}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                <h2 style={{margin: 0}}>📊 Test Details</h2>
+                <button 
+                    onClick={() => setSelectedTest(null)} 
+                    style={{background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-color)'}}
+                >
+                    &times;
+                </button>
+            </div>
+            
+            <div className="detail-grid" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', textAlign: 'left'}}>
+                
+                <div className="detail-item full-width" style={{gridColumn: '1 / -1', background: 'var(--metric-bg)', padding: '15px', borderRadius: '10px'}}>
+                    <strong style={{display: 'block', color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Zeitpunkt</strong>
+                    <span style={{fontSize: '1.1rem', fontWeight: 'bold'}}>
+                        {new Date(selectedTest.timestamp).toLocaleString()}
+                    </span>
+                </div>
+
+                <div className="detail-item">
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Download</strong>
+                    <div style={{fontSize: '1.2rem', fontWeight: 'bold', color: '#35a2eb'}}>{selectedTest.download.toFixed(2)} Mbps</div>
+                </div>
+
+                <div className="detail-item">
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Upload</strong>
+                    <div style={{fontSize: '1.2rem', fontWeight: 'bold', color: '#ff6384'}}>{selectedTest.upload.toFixed(2)} Mbps</div>
+                </div>
+
+                <div className="detail-item">
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Ping</strong>
+                    <div style={{fontSize: '1.1rem'}}>{selectedTest.ping.toFixed(1)} ms</div>
+                </div>
+
+                <div className="detail-item">
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Jitter</strong>
+                    <div style={{fontSize: '1.1rem'}}>{selectedTest.jitter ? selectedTest.jitter.toFixed(1) + ' ms' : '-'}</div>
+                </div>
+
+                <div className="detail-item">
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Paketverlust</strong>
+                    <div style={{fontSize: '1.1rem'}}>{selectedTest.packetLoss ? selectedTest.packetLoss.toFixed(2) : '0.00'}%</div>
+                </div>
+
+                <div className="detail-item">
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>ISP</strong>
+                    <div style={{fontSize: '1rem'}}>{selectedTest.isp}</div>
+                </div>
+
+                <div className="detail-item">
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Download Zeit</strong>
+                    <div style={{fontSize: '1rem'}}>{selectedTest.downloadElapsed ? (selectedTest.downloadElapsed / 1000).toFixed(2) + ' s' : '-'}</div>
+                </div>
+
+                <div className="detail-item">
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Upload Zeit</strong>
+                    <div style={{fontSize: '1rem'}}>{selectedTest.uploadElapsed ? (selectedTest.uploadElapsed / 1000).toFixed(2) + ' s' : '-'}</div>
+                </div>
+
+                <div className="detail-item">
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Daten (Down)</strong>
+                    <div style={{fontSize: '1rem'}}>{selectedTest.downloadBytes ? (selectedTest.downloadBytes / 1024 / 1024).toFixed(1) + ' MB' : '-'}</div>
+                </div>
+
+                <div className="detail-item">
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Daten (Up)</strong>
+                    <div style={{fontSize: '1rem'}}>{selectedTest.uploadBytes ? (selectedTest.uploadBytes / 1024 / 1024).toFixed(1) + ' MB' : '-'}</div>
+                </div>
+
+                <div className="detail-item">
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>VPN aktiv?</strong>
+                    <div style={{fontSize: '1rem'}}>{selectedTest.isVpn ? 'Ja 🔒' : 'Nein'}</div>
+                </div>
+
+                <div className="detail-item">
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Externe IP</strong>
+                    <div style={{fontSize: '1rem'}}>{selectedTest.externalIp || '-'}</div>
+                </div>
+
+                <div className="detail-item full-width" style={{gridColumn: '1 / -1'}}>
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Ergebnis Link</strong>
+                    {selectedTest.resultUrl ? (
+                        <a href={selectedTest.resultUrl} target="_blank" rel="noopener noreferrer" style={{color: '#667eea', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold', display: 'block', wordBreak: 'break-all'}}>
+                            {selectedTest.resultUrl.split('/').pop()} ↗
+                        </a>
+                    ) : (
+                        <div>-</div>
+                    )}
+                </div>
+
+                <div className="detail-group" style={{gridColumn: '1 / -1', marginTop: '10px', borderTop: '1px solid var(--border-color)', paddingTop: '15px'}}>
+                    <h3 style={{fontSize: '1rem', margin: '0 0 10px 0'}}>Server Details</h3>
+                </div>
+
+                <div className="detail-item">
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Ort</strong>
+                    <div>{selectedTest.serverLocation} ({selectedTest.serverCountry})</div>
+                </div>
+
+                <div className="detail-item">
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Server ID</strong>
+                    <div>{selectedTest.serverId || '-'}</div>
+                </div>
+
+                <div className="detail-item full-width" style={{gridColumn: '1 / -1'}}>
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Host</strong>
+                    <div style={{fontFamily: 'monospace'}}>{selectedTest.serverHost ? `${selectedTest.serverHost}:${selectedTest.serverPort}` : '-'}</div>
+                </div>
+                
+                <div className="detail-item full-width" style={{gridColumn: '1 / -1'}}>
+                    <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Server IP</strong>
+                    <div style={{fontFamily: 'monospace'}}>{selectedTest.serverIp || '-'}</div>
+                </div>
+
             </div>
           </div>
         </div>
