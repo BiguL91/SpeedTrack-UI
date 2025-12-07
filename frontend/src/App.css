@@ -72,3 +72,33 @@ button:hover:not(:disabled) {
   color: #666;
   font-style: italic;
 }
+
+/* Neue Stile für die letzten Tests */
+.recent-tests {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.recent-test-item {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  text-align: left;
+  width: 200px; /* Feste Breite für Konsistenz */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.recent-test-item p {
+  margin: 5px 0;
+  font-size: 0.9em;
+}
+
+.recent-test-item hr {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 10px 0;
+}

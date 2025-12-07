@@ -61,11 +61,12 @@ function App() {
   };
 
   // Chart-Daten vorbereiten
-  // Wir wollen den Verlauf für das Diagramm umkehren, damit er von links nach rechts verläuft (alt nach neu)
   const chartDataReversed = [...history].reverse();
+  const labels = chartDataReversed.map(item => new Date(item.timestamp).toLocaleTimeString());
 
-  const data = {
-    labels: chartDataReversed.map(item => new Date(item.timestamp).toLocaleTimeString()),
+  // Daten für Geschwindigkeits-Chart
+  const speedData = {
+    labels,
     datasets: [
       {
         label: 'Download (Mbps)',
@@ -81,17 +82,25 @@ function App() {
         backgroundColor: 'rgba(255, 99, 132, 0.5)',
         yAxisID: 'y',
       },
+    ],
+  };
+
+  // Daten für Ping-Chart
+  const pingData = {
+    labels,
+    datasets: [
       {
         label: 'Ping (ms)',
         data: chartDataReversed.map(item => item.ping),
         borderColor: 'rgb(75, 192, 192)',
         backgroundColor: 'rgba(75, 192, 192, 0.5)',
-        yAxisID: 'y1',
+        yAxisID: 'y',
       },
     ],
   };
 
-  const options = {
+  // Optionen für Geschwindigkeit
+  const speedOptions = {
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
@@ -102,7 +111,7 @@ function App() {
     plugins: {
       title: {
         display: true,
-        text: 'Speedtest Verlauf',
+        text: 'Download & Upload Verlauf',
       },
     },
     scales: {
@@ -115,13 +124,29 @@ function App() {
           text: 'Geschwindigkeit (Mbps)'
         }
       },
-      y1: {
+    },
+  };
+
+  // Optionen für Ping
+  const pingOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
+    stacked: false,
+    plugins: {
+      title: {
+        display: true,
+        text: 'Ping (Latenz) Verlauf',
+      },
+    },
+    scales: {
+      y: {
         type: 'linear',
         display: true,
-        position: 'right',
-        grid: {
-          drawOnChartArea: false,
-        },
+        position: 'left',
         title: {
           display: true,
           text: 'Ping (ms)'
@@ -166,9 +191,28 @@ function App() {
       )}
 
       {history.length > 0 && (
-        <div className="card chart-container">
-          <Line options={options} data={data} />
-        </div>
+        <>
+          <div className="card">
+            <h2>Letzte 5 Tests</h2>
+            <div className="recent-tests">
+              {history.slice(0, 5).map((test, index) => (
+                <div key={test.id} className="recent-test-item">
+                  <p><strong>{new Date(test.timestamp).toLocaleString()}</strong></p>
+                  <p>Download: {test.download.toFixed(2)} Mbps</p>
+                  <p>Upload: {test.upload.toFixed(2)} Mbps</p>
+                  <p>Ping: {test.ping.toFixed(0)} ms</p>
+                  {index < 4 && <hr/>} {/* Nicht nach dem letzten Element */}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="card chart-container">
+            <Line options={speedOptions} data={speedData} />
+          </div>
+          <div className="card chart-container">
+            <Line options={pingOptions} data={pingData} />
+          </div>
+        </>
       )}
     </div>
   );
