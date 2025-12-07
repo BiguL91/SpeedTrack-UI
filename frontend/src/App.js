@@ -62,6 +62,30 @@ function App() {
     }, 3000); // Nach 3 Sekunden ausblenden
   };
 
+  // Helper um Server Location sauber anzuzeigen (ohne ID im Text) und zu formatieren
+  const formatServerDisplay = (test) => {
+      let displayLocation = test.serverLocation || '';
+      let displayId = test.serverId;
+
+      // Für alte manuelle Tests, bei denen die ID noch im Location-String steckt:
+      // Versuche, die ID aus dem Location-String zu extrahieren, wenn test.serverId fehlt
+      if (!displayId && displayLocation) {
+          const embeddedIdMatch = displayLocation.match(/\(id\s*[=:]\s*(\d+)\)/i);
+          if (embeddedIdMatch && embeddedIdMatch[1]) {
+              displayId = embeddedIdMatch[1];
+          }
+      }
+
+      // Entferne immer die (id=...) oder (ID=...) Teile aus dem Location-String für eine saubere Anzeige
+      displayLocation = displayLocation.replace(/\s*\(id\s*[=:]\s*\d+\)/gi, '').trim();
+
+      let formattedString = displayLocation;
+      if (displayId) {
+          formattedString += ` (ID: ${displayId})`;
+      }
+      return formattedString;
+  };
+
   const getNextRunTime = () => {
     if (!cronSchedule) return 'Lädt...';
 
@@ -632,7 +656,7 @@ function App() {
                 </div>
                 
                 <div className="row-server" title={test.serverLocation}>
-                  {test.serverLocation}
+                  {formatServerDisplay(test)}
                 </div>
 
                 <div className="row-metric download">

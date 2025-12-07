@@ -134,7 +134,8 @@ function runScheduledTest() {
       const jitter = result.ping.jitter || 0;
       const packetLoss = result.packetLoss || 0;
       const isp = result.isp;
-      const serverLocation = result.server.location;
+      // Kombiniere Provider und Ort für bessere Lesbarkeit (z.B. "Vodafone - Frankfurt")
+      const serverLocation = `${result.server.name} - ${result.server.location}`;
       const serverCountry = result.server.country;
       const serverId = result.server.id;
       const serverHost = result.server.host;
@@ -375,9 +376,14 @@ app.get('/api/test/stream', (req, res) => {
         finalResult.serverLocation = serverFullMatch[1].trim();
         finalResult.serverId = serverFullMatch[2];
     } else {
-        // Fallback altes Format
+        // Fallback altes Format (Versuche ID zu entfernen falls vorhanden)
         const serverMatch = buffer.match(/Server:\s+(.+)/);
-        if (serverMatch) finalResult.serverLocation = serverMatch[1].trim();
+        if (serverMatch) {
+            let loc = serverMatch[1].trim();
+            // Entferne (id = ...) falls es im String ist
+            loc = loc.replace(/\s*\(id\s*=\s*\d+\)/i, '');
+            finalResult.serverLocation = loc;
+        }
     }
     
     const packetLossMatch = buffer.match(/Packet Loss:\s+([\d\.]+)%/);
