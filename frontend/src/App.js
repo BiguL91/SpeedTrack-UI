@@ -37,7 +37,7 @@ function App() {
         setLastResult(response.data[0]);
       }
     } catch (err) {
-      console.error("Failed to fetch history", err);
+      console.error("Fehler beim Abrufen des Verlaufs", err);
     }
   };
 
@@ -51,17 +51,17 @@ function App() {
     try {
       const response = await axios.post('http://localhost:5000/api/test');
       setLastResult(response.data);
-      await fetchHistory(); // Refresh history
+      await fetchHistory(); // Verlauf aktualisieren
     } catch (err) {
-      setError("Test failed. Please ensure the backend is running and speedtest CLI is installed.");
+      setError("Test fehlgeschlagen. Bitte stelle sicher, dass das Backend läuft und die Speedtest CLI installiert ist.");
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Prepare Chart Data
-  // We want to reverse history for the chart so it goes left to right (old to new)
+  // Chart-Daten vorbereiten
+  // Wir wollen den Verlauf für das Diagramm umkehren, damit er von links nach rechts verläuft (alt nach neu)
   const chartDataReversed = [...history].reverse();
 
   const data = {
@@ -102,7 +102,7 @@ function App() {
     plugins: {
       title: {
         display: true,
-        text: 'Speedtest History',
+        text: 'Speedtest Verlauf',
       },
     },
     scales: {
@@ -112,7 +112,7 @@ function App() {
         position: 'left',
         title: {
           display: true,
-          text: 'Speed (Mbps)'
+          text: 'Geschwindigkeit (Mbps)'
         }
       },
       y1: {
@@ -136,15 +136,15 @@ function App() {
       
       <div className="card">
         <button onClick={runTest} disabled={loading}>
-          {loading ? 'Running Speedtest...' : 'Start New Test'}
+          {loading ? 'Speedtest läuft...' : 'Neuen Test starten'}
         </button>
-        {loading && <p className="loader">This may take up to 30 seconds...</p>}
+        {loading && <p className="loader">Das kann bis zu 30 Sekunden dauern...</p>}
         {error && <p style={{color: 'red'}}>{error}</p>}
       </div>
 
       {lastResult && (
         <div className="card">
-          <h2>Latest Result</h2>
+          <h2>Letztes Ergebnis</h2>
           <p style={{fontSize: '0.8em', color: '#666'}}>
             {new Date(lastResult.timestamp).toLocaleString()} - Server: {lastResult.serverLocation} ({lastResult.isp})
           </p>

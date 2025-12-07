@@ -11,13 +11,13 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Database Setup
+// Datenbank-Einrichtung
 const dbPath = path.resolve(__dirname, 'speedtest.db');
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('Error opening database:', err.message);
+    console.error('Fehler beim Öffnen der Datenbank:', err.message);
   } else {
-    console.log('Connected to the SQLite database.');
+    console.log('Verbunden mit der SQLite-Datenbank.');
     createTable();
   }
 });
@@ -38,17 +38,17 @@ function createTable() {
   `;
   db.run(sql, (err) => {
     if (err) {
-      console.error('Error creating table:', err.message);
+      console.error('Fehler beim Erstellen der Tabelle:', err.message);
     }
   });
 }
 
-// Routes
+// Routen
 app.get('/', (req, res) => {
   res.send('SpeedTest Tracker API is running');
 });
 
-// Get History
+// Verlauf abrufen
 app.get('/api/history', (req, res) => {
   const sql = 'SELECT * FROM results ORDER BY timestamp DESC';
   db.all(sql, [], (err, rows) => {
@@ -60,22 +60,22 @@ app.get('/api/history', (req, res) => {
   });
 });
 
-// Run Speedtest
+// Speedtest ausführen
 app.post('/api/test', (req, res) => {
-  console.log('Starting speedtest...');
-  // Execute Ookla CLI command
-  // Note: --accept-license and --accept-gdpr are often needed for first runs non-interactively
+  console.log('Starte Speedtest...');
+  // Führe Ookla CLI-Befehl aus
+  // Hinweis: --accept-license und --accept-gdpr sind oft für den ersten nicht-interaktiven Lauf erforderlich
   exec('speedtest --format=json --accept-license --accept-gdpr', (error, stdout, stderr) => {
     if (error) {
-      console.error(`exec error: ${error}`);
-      return res.status(500).json({ error: 'Failed to run speedtest', details: stderr });
+      console.error(`Ausführungsfehler: ${error}`);
+      return res.status(500).json({ error: 'Speedtest konnte nicht ausgeführt werden', details: stderr });
     }
 
     try {
       const result = JSON.parse(stdout);
       
-      // Extract relevant data
-      // Bandwidth is in bytes/sec. Convert to Mbps: (bytes * 8) / 1,000,000
+      // Relevante Daten extrahieren
+      // Bandbreite ist in Bytes/Sekunde. Umrechnung in Mbps: (Bytes * 8) / 1.000.000
       const downloadMbps = (result.download.bandwidth * 8) / 1000000;
       const uploadMbps = (result.upload.bandwidth * 8) / 1000000;
       const pingMs = result.ping.latency;
@@ -85,7 +85,7 @@ app.post('/api/test', (req, res) => {
       const serverCountry = result.server.country;
       const timestamp = new Date().toISOString();
 
-      // Save to DB
+      // In Datenbank speichern
       const insertSql = `
         INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -96,7 +96,7 @@ app.post('/api/test', (req, res) => {
       db.run(insertSql, params, function(err) {
         if (err) {
           console.error(err.message);
-          return res.status(500).json({ error: 'Failed to save results' });
+          return res.status(500).json({ error: 'Fehler beim Speichern der Ergebnisse' });
         }
         
         res.json({
@@ -113,12 +113,12 @@ app.post('/api/test', (req, res) => {
       });
 
     } catch (parseError) {
-      console.error('Error parsing output:', parseError);
-      res.status(500).json({ error: 'Failed to parse speedtest output' });
+      console.error('Fehler beim Parsen der Ausgabe:', parseError);
+      res.status(500).json({ error: 'Fehler beim Verarbeiten der Speedtest-Ausgabe' });
     }
   });
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server läuft auf Port ${PORT}`);
 });
