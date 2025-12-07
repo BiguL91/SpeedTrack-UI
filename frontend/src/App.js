@@ -260,7 +260,7 @@ function App() {
           color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#e0e0e0' : '#666'
         },
         ticks: { color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#e0e0e0' : '#666' },
-        grid: { color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#444' : '#ddd' }
+        grid: { color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#e0e0e0' : '#666' }
       },
     },
   };
@@ -358,7 +358,7 @@ function App() {
         )}
         
         {/* STATS CARD (Rechts oben) */}
-        {history.length > 0 && !loading && (
+        {history.length > 0 && (
           <div className="card card-stats">
             <h2>Durchschnitt</h2>
             <div className="stats-grid">
