@@ -95,12 +95,12 @@ h2 {
 /* Responsive Grid für größere Screens */
 @media (min-width: 900px) {
   .dashboard-grid {
-    grid-template-columns: 1.5fr 1fr; /* Links (Main) breiter als Rechts (Stats) */
+    grid-template-columns: 1fr 1fr; /* Zwei gleich große Spalten (für Charts) */
     grid-template-areas: 
-      "main stats"
-      "list list"
-      "chart1 chart1"
-      "chart2 chart2";
+      "main main"     /* Zeile 1: Letztes Ergebnis (volle Breite) */
+      "stats stats"   /* Zeile 2: Durchschnitt (volle Breite) */
+      "chart1 chart2" /* Zeile 3: Charts nebeneinander */
+      "list list";    /* Zeile 4: Liste ganz unten (volle Breite) */
   }
   
   .card-main { grid-area: main; }
