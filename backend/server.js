@@ -26,8 +26,32 @@ const db = new sqlite3.Database(dbPath, (err) => {
   } else {
     console.log('Verbunden mit der SQLite-Datenbank.');
     createTable();
+    createSettingsTable();
   }
 });
+
+function createSettingsTable() {
+  const sql = `
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    )
+  `;
+  db.run(sql, (err) => {
+    if (err) {
+      console.error('Fehler beim Erstellen der Settings-Tabelle:', err.message);
+    } else {
+      // Standardwert setzen, falls nicht vorhanden
+      const checkSql = "SELECT value FROM settings WHERE key = 'cron_schedule'";
+      db.get(checkSql, [], (err, row) => {
+        if (!row) {
+          const defaultSchedule = process.env.CRON_SCHEDULE || '0 * * * *'; // Default: Jede Stunde
+          db.run("INSERT INTO settings (key, value) VALUES ('cron_schedule', ?)", [defaultSchedule]);
+        }
+      });
+    }
+  });
+}
 
 function createTable() {
   const sql = `
@@ -93,17 +117,68 @@ function runScheduledTest() {
   });
 }
 
-// Cronjob Initialisierung
-const schedule = process.env.CRON_SCHEDULE || '0 * * * *';
-if (cron.validate(schedule)) {
-    cron.schedule(schedule, runScheduledTest);
-    console.log(`Cronjob aktiviert mit Zeitplan: ${schedule}`);
-} else {
+// Cronjob Logik
+let scheduledTask = null;
+
+function startCronJob(schedule) {
+  if (scheduledTask) {
+    scheduledTask.stop();
+    console.log('Alter Cronjob gestoppt.');
+  }
+
+  if (cron.validate(schedule)) {
+    scheduledTask = cron.schedule(schedule, runScheduledTest);
+    console.log(`Neuer Cronjob gestartet mit Zeitplan: ${schedule}`);
+  } else {
     console.error(`Ungültiges Cron-Format: ${schedule}`);
+  }
 }
+
+// Initialer Start des Cronjobs aus der DB
+setTimeout(() => {
+    db.get("SELECT value FROM settings WHERE key = 'cron_schedule'", [], (err, row) => {
+        if (row && row.value) {
+            startCronJob(row.value);
+        } else {
+            // Fallback
+            startCronJob('0 * * * *');
+        }
+    });
+}, 1000); // Kurz warten bis DB bereit ist
 
 
 // API Routen
+app.get('/api/settings', (req, res) => {
+    db.get("SELECT value FROM settings WHERE key = 'cron_schedule'", [], (err, row) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json({ cron_schedule: row ? row.value : '0 * * * *' });
+    });
+});
+
+app.post('/api/settings', (req, res) => {
+    const { cron_schedule } = req.body;
+    
+    if (!cron.validate(cron_schedule)) {
+        return res.status(400).json({ error: "Ungültiges Cron-Format" });
+    }
+
+    const sql = "INSERT OR REPLACE INTO settings (key, value) VALUES ('cron_schedule', ?)";
+    db.run(sql, [cron_schedule], (err) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        
+        // Cronjob zur Laufzeit aktualisieren!
+        startCronJob(cron_schedule);
+        
+        res.json({ message: "Einstellungen gespeichert", cron_schedule });
+    });
+});
+
 app.get('/api/history', (req, res) => {
   const sql = 'SELECT * FROM results ORDER BY timestamp DESC';
   db.all(sql, [], (err, rows) => {

@@ -43,6 +43,31 @@ function App() {
   
   // Theme State: 'light', 'dark', oder 'auto'
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'auto');
+  
+  // Settings State
+  const [showSettings, setShowSettings] = useState(false);
+  const [cronSchedule, setCronSchedule] = useState('0 * * * *'); // Default
+
+  const fetchSettings = useCallback(async () => {
+    try {
+        const response = await axios.get('/api/settings');
+        setCronSchedule(response.data.cron_schedule);
+    } catch (err) {
+        console.error("Fehler beim Laden der Einstellungen", err);
+    }
+  }, []);
+
+  // Settings speichern
+  const saveSettings = async (newSchedule) => {
+    try {
+        await axios.post('/api/settings', { cron_schedule: newSchedule });
+        setCronSchedule(newSchedule);
+        setShowSettings(false);
+        alert("Zeitplan erfolgreich gespeichert!");
+    } catch (err) {
+        alert("Fehler beim Speichern: " + (err.response?.data?.error || err.message));
+    }
+  };
 
   // Theme Logik
   useEffect(() => {
@@ -135,6 +160,7 @@ function App() {
   // useEffect für Initialisierung und Auto-Refresh
   useEffect(() => {
     fetchHistory(); 
+    fetchSettings();
 
     const intervalId = setInterval(() => {
         if (!loading) {
@@ -143,7 +169,7 @@ function App() {
     }, 30000); 
 
     return () => clearInterval(intervalId); 
-  }, [loading, fetchHistory]); 
+  }, [loading, fetchHistory, fetchSettings]); 
 
   // Neue runTest Funktion mit SSE
   const runTest = () => {
@@ -358,6 +384,9 @@ function App() {
   return (
     <div className="App">
       <div className="theme-toggle-container">
+        <button className="theme-toggle" onClick={() => setShowSettings(true)} style={{marginRight: '10px'}}>
+          ⚙️ Einstellungen
+        </button>
         <button className="theme-toggle" onClick={toggleTheme}>
           Modus: {theme === 'auto' ? 'Auto' : theme === 'dark' ? 'Dunkel' : 'Hell'}
         </button>
@@ -488,6 +517,39 @@ function App() {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* SETTINGS MODAL */}
+      {showSettings && (
+        <div className="modal-overlay">
+          <div className="modal-content card">
+            <h2>⚙️ Einstellungen</h2>
+            <div className="form-group">
+                <label>Automatischer Test-Intervall:</label>
+                <select 
+                    value={cronSchedule} 
+                    onChange={(e) => setCronSchedule(e.target.value)}
+                    style={{width: '100%', padding: '10px', marginTop: '10px', marginBottom: '20px'}}
+                >
+                    <option value="*/30 * * * *">Alle 30 Minuten</option>
+                    <option value="0 * * * *">Jede Stunde</option>
+                    <option value="0 */2 * * *">Alle 2 Stunden</option>
+                    <option value="0 */3 * * *">Alle 3 Stunden</option>
+                    <option value="0 */4 * * *">Alle 4 Stunden</option>
+                    <option value="0 */6 * * *">Alle 6 Stunden</option>
+                    <option value="0 */12 * * *">Alle 12 Stunden</option>
+                    <option value="0 0 * * *">Täglich (00:00 Uhr)</option>
+                </select>
+                <p style={{fontSize: '0.8rem', color: '#666'}}>
+                    Aktueller Cron-Wert: <code>{cronSchedule}</code>
+                </p>
+            </div>
+            <div className="modal-actions" style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
+                <button className="start-btn" style={{backgroundColor: '#666'}} onClick={() => setShowSettings(false)}>Abbrechen</button>
+                <button className="start-btn" onClick={() => saveSettings(cronSchedule)}>Speichern</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
