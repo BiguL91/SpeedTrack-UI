@@ -31,8 +31,8 @@ function App() {
   const [error, setError] = useState(null);
   const [averages, setAverages] = useState({ download: 0, upload: 0, ping: 0 });
   
-  // Neuer State für Live-Daten
-  const [liveData, setLiveData] = useState({ phase: null, value: 0 }); 
+  // Neuer State für die Live-Werte aller Metriken gleichzeitig
+  const [currentTestValues, setCurrentTestValues] = useState({ download: 0, upload: 0, ping: 0 });
   
   // Theme State: 'light', 'dark', oder 'auto'
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'auto');
@@ -121,11 +121,11 @@ function App() {
   const runTest = () => {
     setLoading(true);
     setError(null);
-    setLiveData({ phase: 'init', value: 0 });
+    // Reset Live-Werte auf 0 beim Start
+    setCurrentTestValues({ download: 0, upload: 0, ping: 0 });
 
     const eventSource = new EventSource('http://localhost:5000/api/test/stream');
     
-    // Lokale Variablen zur Verfolgung des Fortschritts innerhalb dieses Streams
     let hasStartedDownload = false;
     let hasStartedUpload = false;
 
@@ -136,14 +136,13 @@ function App() {
             if (data.type === 'progress') {
                 if (data.phase === 'download') {
                     hasStartedDownload = true;
-                    setLiveData({ phase: 'download', value: data.value });
+                    setCurrentTestValues(prev => ({ ...prev, download: data.value }));
                 } else if (data.phase === 'upload') {
                     hasStartedUpload = true;
-                    setLiveData({ phase: 'upload', value: data.value });
+                    setCurrentTestValues(prev => ({ ...prev, upload: data.value }));
                 } else if (data.phase === 'ping') {
-                    // Ping Updates ignorieren, wenn Download oder Upload bereits begonnen haben
                     if (!hasStartedDownload && !hasStartedUpload) {
-                        setLiveData({ phase: 'ping', value: data.value });
+                        setCurrentTestValues(prev => ({ ...prev, ping: data.value }));
                     }
                 }
             } else if (data.type === 'done') {
@@ -151,7 +150,6 @@ function App() {
                 fetchHistory(); // Verlauf aktualisieren
                 eventSource.close();
                 setLoading(false);
-                setLiveData({ phase: null, value: 0 });
             } else if (data.type === 'error') {
                 setError(data.message);
                 eventSource.close();
@@ -163,15 +161,13 @@ function App() {
     };
 
     eventSource.onerror = (err) => {
-        // Bei SSE ist onerror oft ungenau. Wir schließen und zeigen Fehler nur wenn wir noch laden.
         console.error("SSE Error:", err);
         if (eventSource.readyState === EventSource.CLOSED) return;
         
         eventSource.close();
         setLoading(false);
-        // Wir setzen keinen harten Error Text hier, da Browser oft beim Schließen (Ende) einen Fehler werfen
-        // außer wir haben noch kein Ergebnis.
-        if (!lastResult && liveData.phase === 'init') {
+        // Wenn noch keine Ergebnisse da sind, ist es ein echter Fehler
+        if (!lastResult && currentTestValues.ping === 0) {
             setError("Verbindung zum Test-Stream unterbrochen.");
         }
     };
@@ -191,7 +187,7 @@ function App() {
         borderColor: 'rgb(53, 162, 235)',
         backgroundColor: 'rgba(53, 162, 235, 0.5)',
         yAxisID: 'y',
-        tension: 0.3, // Etwas weichere Kurven für modernen Look
+        tension: 0.3,
       },
       {
         label: 'Upload (Mbps)',
@@ -260,7 +256,6 @@ function App() {
     },
   };
 
-  // Optionen für Ping
   const pingOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -301,6 +296,11 @@ function App() {
     },
   };
 
+  // Bestimme Datenquelle: Live-Werte oder letztes Ergebnis
+  const displayData = loading ? currentTestValues : lastResult;
+  // Titel für die Karte
+  const resultCardTitle = loading ? 'Live Test läuft...' : 'Letztes Ergebnis';
+
   return (
     <div className="App">
       <div className="theme-toggle-container">
@@ -318,18 +318,40 @@ function App() {
         {error && <p style={{color: 'red', marginTop: '10px'}}>{error}</p>}
       </div>
 
-      {/* LIVE ANZEIGE */}
-      {loading && (
-        <div className="card live-card">
-            <h2>Live Test</h2>
-            <div className="live-display">
-                <p className="live-phase">{liveData.phase === 'init' ? 'Initialisiere...' : liveData.phase}</p>
-                <p className="live-value">{liveData.value.toFixed(1)}</p>
-                <p className="live-unit">{liveData.phase === 'ping' ? 'ms' : 'Mbps'}</p>
+      {/* Kombinierte Karte für Live & Ergebnis */}
+      {displayData && (
+        <div className="card">
+          <h2>{resultCardTitle}</h2>
+          
+          {/* Metadaten (Server, Datum) nur anzeigen, wenn NICHT loading oder wenn loading aber wir wollen es leer lassen */}
+          {!loading && displayData.timestamp && (
+            <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
+              {new Date(displayData.timestamp).toLocaleString()} - Server: {displayData.serverLocation} ({displayData.isp})
+            </p>
+          )}
+          {loading && (
+             <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic'}}>
+               Ermittle Daten...
+             </p>
+          )}
+
+          <div className="results-grid">
+            <div className="metric">
+              <h3>Download</h3>
+              <p>{displayData.download?.toFixed(2) || '0.00'} <span>Mbps</span></p>
             </div>
+            <div className="metric">
+              <h3>Upload</h3>
+              <p>{displayData.upload?.toFixed(2) || '0.00'} <span>Mbps</span></p>
+            </div>
+            <div className="metric">
+              <h3>Ping</h3>
+              <p>{displayData.ping?.toFixed(0) || '0'} <span>ms</span></p>
+            </div>
+          </div>
         </div>
       )}
-
+      
       {/* Durchschnittswerte */}
       {history.length > 0 && !loading && (
         <div className="card">
@@ -346,29 +368,6 @@ function App() {
             <div className="metric">
               <h3>Durchschnitt Ping</h3>
               <p>{averages.ping.toFixed(0)} <span>ms</span></p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {lastResult && !loading && (
-        <div className="card">
-          <h2>Letztes Ergebnis</h2>
-          <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
-            {new Date(lastResult.timestamp).toLocaleString()} - Server: {lastResult.serverLocation} ({lastResult.isp})
-          </p>
-          <div className="results-grid">
-            <div className="metric">
-              <h3>Download</h3>
-              <p>{lastResult.download.toFixed(2)} <span>Mbps</span></p>
-            </div>
-            <div className="metric">
-              <h3>Upload</h3>
-              <p>{lastResult.upload.toFixed(2)} <span>Mbps</span></p>
-            </div>
-            <div className="metric">
-              <h3>Ping</h3>
-              <p>{lastResult.ping.toFixed(0)} <span>ms</span></p>
             </div>
           </div>
         </div>
