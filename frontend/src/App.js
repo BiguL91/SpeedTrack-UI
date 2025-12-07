@@ -124,13 +124,28 @@ function App() {
     setLiveData({ phase: 'init', value: 0 });
 
     const eventSource = new EventSource('http://localhost:5000/api/test/stream');
+    
+    // Lokale Variablen zur Verfolgung des Fortschritts innerhalb dieses Streams
+    let hasStartedDownload = false;
+    let hasStartedUpload = false;
 
     eventSource.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
 
             if (data.type === 'progress') {
-                setLiveData({ phase: data.phase, value: data.value });
+                if (data.phase === 'download') {
+                    hasStartedDownload = true;
+                    setLiveData({ phase: 'download', value: data.value });
+                } else if (data.phase === 'upload') {
+                    hasStartedUpload = true;
+                    setLiveData({ phase: 'upload', value: data.value });
+                } else if (data.phase === 'ping') {
+                    // Ping Updates ignorieren, wenn Download oder Upload bereits begonnen haben
+                    if (!hasStartedDownload && !hasStartedUpload) {
+                        setLiveData({ phase: 'ping', value: data.value });
+                    }
+                }
             } else if (data.type === 'done') {
                 setLastResult(data.result);
                 fetchHistory(); // Verlauf aktualisieren
