@@ -49,6 +49,7 @@ function App() {
   // Settings State
   const [showSettings, setShowSettings] = useState(false);
   const [cronSchedule, setCronSchedule] = useState('0 * * * *'); // Default
+  const [visibleCount, setVisibleCount] = useState(5); // Wie viele Tests anzeigen?
 
   // Toast Notification State
   const [notification, setNotification] = useState(null); // { message: '', type: 'success' | 'error' }
@@ -585,9 +586,20 @@ function App() {
       {/* LIST CARD */}
       {history.length > 0 && (
         <div className="card">
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-              <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte 5 Tests</h2>
-              <a href="/api/export" target="_blank" rel="noopener noreferrer" style={{color: '#667eea', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold'}}>
+          <div className="list-header-row">
+              <div className="list-header-left">
+                  <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte {visibleCount} Tests</h2>
+                  <input 
+                    type="range" 
+                    min="3" 
+                    max="50" 
+                    value={visibleCount} 
+                    onChange={(e) => setVisibleCount(Number(e.target.value))}
+                    className="range-slider"
+                    title="Anzahl ändern"
+                  />
+              </div>
+              <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
                   CSV Export ⬇
               </a>
           </div>
@@ -601,7 +613,7 @@ function App() {
           </div>
 
           <ul className="recent-tests-list"> 
-            {history.slice(0, 5).map((test, index) => (
+            {history.slice(0, visibleCount).map((test, index) => (
               <li key={test.id} className="recent-tests-row">
                 <div className="row-time">
                   {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}

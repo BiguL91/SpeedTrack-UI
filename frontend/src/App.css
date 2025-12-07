@@ -219,6 +219,74 @@ button.start-btn:disabled {
 }
 
 
+/* List Header Layout */
+.list-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.list-header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.export-link {
+  color: #667eea;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: color 0.2s;
+}
+
+.export-link:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+/* Custom Range Slider */
+.range-slider {
+  -webkit-appearance: none;
+  width: 120px;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 5px;
+  outline: none;
+  opacity: 0.7;
+  transition: opacity .2s;
+  cursor: pointer;
+}
+
+.range-slider:hover {
+  opacity: 1;
+}
+
+.range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.range-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  border: none;
+}
+
+
 /* List Styles: SINGLE LINE LAYOUT */
 .recent-tests-list {
   padding: 0;
