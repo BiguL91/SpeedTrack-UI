@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import {
   Chart as ChartJS,
@@ -8,8 +8,7 @@ import {
   LineElement,
   Title,
   Tooltip,
-  Legend,
-  Defaults
+  Legend
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import './App.css';
@@ -118,7 +117,7 @@ function App() {
     });
   };
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       const response = await axios.get('/api/history');
       setHistory(response.data);
@@ -129,7 +128,7 @@ function App() {
     } catch (err) {
       console.error("Fehler beim Abrufen des Verlaufs", err);
     }
-  };
+  }, []);
 
   // useEffect für Initialisierung und Auto-Refresh
   useEffect(() => {
@@ -142,7 +141,7 @@ function App() {
     }, 30000); 
 
     return () => clearInterval(intervalId); 
-  }, [loading]); 
+  }, [loading, fetchHistory]); 
 
   // Neue runTest Funktion mit SSE
   const runTest = () => {

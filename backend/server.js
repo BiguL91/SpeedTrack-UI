@@ -266,7 +266,12 @@ app.get('/api/test/stream', (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.send('Backend läuft. Frontend läuft im Entwicklungsmodus auf Port 3000.');
+  }
 });
 
 app.listen(PORT, () => {
