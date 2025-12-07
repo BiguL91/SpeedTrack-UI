@@ -113,18 +113,19 @@ function App() {
     }
   };
 
+  // useEffect für Initialisierung und Auto-Refresh
   useEffect(() => {
-    fetchHistory();
+    fetchHistory(); // Initialer Abruf beim Start
 
-    // Auto-Refresh: Alle 30 Sekunden Daten aktualisieren
     const intervalId = setInterval(() => {
+        // Nur aktualisieren, wenn kein manueller Test läuft
         if (!loading) {
             fetchHistory();
         }
-    }, 30000);
+    }, 30000); // Alle 30 Sekunden
 
-    return () => clearInterval(intervalId);
-  }, [loading]);
+    return () => clearInterval(intervalId); // Cleanup Funktion
+  }, [loading]); // Abhängigkeit 'loading' damit der Intervall bei Statusänderung korrekt gehandhabt wird
 
   // Neue runTest Funktion mit SSE
   const runTest = () => {
@@ -386,18 +387,21 @@ function App() {
         <>
           <div className="card">
             <h2>Letzte 5 Tests</h2>
-            <div className="recent-tests">
+            <ul className="recent-tests-list"> {/* Neue Klasse für eine Liste */}
               {history.slice(0, 5).map((test, index) => (
-                <div key={test.id} className="recent-test-item">
-                  <p><strong>{new Date(test.timestamp).toLocaleString()}</strong></p>
-                  <p style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>{test.serverLocation}</p>
-                  <hr/>
-                  <p>Down: <strong>{test.download.toFixed(0)}</strong> Mbps</p>
-                  <p>Up: <strong>{test.upload.toFixed(0)}</strong> Mbps</p>
-                  <p>Ping: <strong>{test.ping.toFixed(0)}</strong> ms</p>
-                </div>
+                <li key={test.id} className="recent-tests-list-item"> {/* Neue Klasse */}
+                  <div className="test-header">
+                    <strong>{new Date(test.timestamp).toLocaleString()}</strong>
+                    <span className="server-info" style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>{test.serverLocation}</span>
+                  </div>
+                  <div className="test-metrics">
+                    <span>Down: <strong>{test.download.toFixed(0)}</strong> Mbps</span>
+                    <span>Up: <strong>{test.upload.toFixed(0)}</strong> Mbps</span>
+                    <span>Ping: <strong>{test.ping.toFixed(0)}</strong> ms</span>
+                  </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
           <div className="card chart-container">
             <Line key={`speed-${theme}`} options={speedOptions} data={speedData} />

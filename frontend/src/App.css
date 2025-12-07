@@ -163,52 +163,73 @@ button.start-btn:disabled {
   margin-left: 5px;
 }
 
-/* Recent Tests List */
-.recent-tests {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 20px;
+/* Remove old recent-tests styles */
+/* .recent-tests {
+  gap: 15px;
   margin-top: 10px;
+} */
+
+/* .recent-test-item {
+} */
+
+/* New styles for the list */
+.recent-tests-list {
+  list-style: none; /* Keine Standard-Listenpunkte */
+  padding: 0;
+  margin: 0;
+  display: flex; /* Für die Liste als Ganzes */
+  flex-direction: column; /* Vertikal anordnen */
+  gap: 10px; /* Abstand zwischen Listenelementen */
 }
 
-.recent-test-item {
+.recent-tests-list-item {
   background: var(--metric-bg);
-  padding: 20px;
-  border-radius: 16px;
+  padding: 15px 20px;
+  border-radius: 12px;
   border: 1px solid var(--border-color);
-  width: 240px;
   box-shadow: var(--metric-shadow);
-  text-align: left;
-  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-.recent-test-item:hover {
+.recent-tests-list-item:hover {
   transform: translateY(-2px);
-  border-color: #764ba2;
+  border-color: #667eea;
 }
 
-.recent-test-item p {
-  margin: 8px 0;
-  font-size: 0.9rem;
-  color: var(--text-color);
+.test-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 5px;
 }
 
-.recent-test-item strong {
-  display: block;
-  margin-bottom: 12px;
-  color: #667eea;
+.test-header strong {
   font-size: 1rem;
+  color: var(--text-color);
 }
 
-.recent-test-item hr {
-  border: none;
-  border-top: 1px solid var(--border-color);
-  margin: 15px 0;
+.server-info {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
+
+.test-metrics {
+  display: flex;
+  justify-content: space-around;
+  gap: 10px; /* Abstand zwischen den Metriken */
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.test-metrics strong {
+  color: var(--text-color);
+  font-weight: 600;
+  margin-left: 5px;
+}
+
 
 /* Theme Toggle */
 .theme-toggle-container {
