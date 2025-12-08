@@ -239,8 +239,16 @@ app.post('/api/settings', (req, res) => {
 });
 
 app.get('/api/history', (req, res) => {
-  const sql = 'SELECT * FROM results ORDER BY timestamp DESC';
-  db.all(sql, [], (err, rows) => {
+  const limit = req.query.limit ? parseInt(req.query.limit) : null;
+  let sql = 'SELECT * FROM results ORDER BY timestamp DESC';
+  let params = [];
+
+  if (limit) {
+      sql += ' LIMIT ?';
+      params.push(limit);
+  }
+
+  db.all(sql, params, (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;

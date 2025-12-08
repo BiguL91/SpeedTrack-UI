@@ -57,6 +57,9 @@ function App() {
   const [visibleCount, setVisibleCount] = useState(5); // Wie viele Tests anzeigen?
   const [selectedTest, setSelectedTest] = useState(null); // Für Detail-Ansicht
   const [chartDataLimit, setChartDataLimit] = useState(20); // Wie viele Tests im Chart anzeigen? (0 = Alle)
+  
+  // View State: 'dashboard' oder 'history'
+  const [view, setView] = useState('dashboard');
 
   // Toast Notification State
   const [notification, setNotification] = useState(null); // { message: '', type: 'success' | 'error' }
@@ -409,14 +412,17 @@ function App() {
     });
   };
 
-  const fetchHistory = useCallback(async () => {
+  const fetchHistory = useCallback(async (limit = 0) => {
     try {
-      const response = await axios.get('/api/history');
+      const url = limit > 0 ? `/api/history?limit=${limit}` : '/api/history';
+      const response = await axios.get(url);
       setHistory(response.data);
-      if (response.data.length > 0) {
+      
+      if (response.data.length > 0 && limit > 0) {
         setLastResult(response.data[0]);
       }
-      calculateStats(response.data); // Neue Funktion nutzen
+      
+      calculateStats(response.data); 
     } catch (err) {
       console.error("Fehler beim Abrufen des Verlaufs", err);
     }
@@ -424,17 +430,23 @@ function App() {
 
   // useEffect für Initialisierung und Auto-Refresh
   useEffect(() => {
-    fetchHistory(); 
+    // Initial Load
     fetchSettings();
+    if (view === 'dashboard') {
+        fetchHistory(50);
+    } else {
+        fetchHistory(0); // Alles laden
+    }
 
+    // Auto Refresh nur im Dashboard
     const intervalId = setInterval(() => {
-        if (!loading) {
-            fetchHistory();
+        if (!loading && view === 'dashboard') {
+            fetchHistory(50);
         }
     }, 30000); 
 
     return () => clearInterval(intervalId); 
-  }, [loading, fetchHistory, fetchSettings]); 
+  }, [loading, fetchHistory, fetchSettings, view]); 
 
   // Neue runTest Funktion mit SSE
   const runTest = () => {
@@ -466,7 +478,9 @@ function App() {
                 }
             } else if (data.type === 'done') {
                 setLastResult(data.result);
-                fetchHistory(); // Verlauf aktualisieren
+                // Wenn wir im Dashboard sind, refresh. Sonst nix.
+                if (view === 'dashboard') fetchHistory(50);
+                
                 eventSource.close();
                 setLoading(false);
                 showToast("Test erfolgreich beendet! 🚀", "success");
@@ -651,6 +665,276 @@ function App() {
   const displayData = loading ? currentTestValues : lastResult;
   const resultCardTitle = loading ? 'Live Test läuft...' : 'Letztes Ergebnis';
 
+  // --- RENDER HELPERS ---
+  const renderDashboard = () => (
+      <>
+        <div className="card">
+            <button className="start-btn" onClick={runTest} disabled={loading}>
+            {loading ? 'Speedtest läuft...' : 'Neuen Test starten'}
+            </button>
+            {error && <p style={{color: 'red', marginTop: '10px'}}>{error}</p>}
+        </div>
+
+        {/* HAUPTBEREICH: Combined Metrics */}
+        {displayData && (
+            <div className="card card-main">
+            <h2>{resultCardTitle}</h2>
+            
+            {loading && (
+                <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic'}}>
+                Ermittle Daten...
+                </p>
+            )}
+
+            {!loading && (
+                <div className="next-test-badge">
+                <span className="pulse-dot"></span>
+                Nächster Test: <strong>{getNextRunTime()}</strong>
+                </div>
+            )}
+
+            <div className="results-grid">
+                {/* DOWNLOAD */}
+                <div className="metric">
+                <h3>Download</h3>
+                <p>{displayData.download?.toFixed(2) || '0.00'} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
+                
+                {history.length > 0 && (
+                    <div className="sub-metrics">
+                        <div>Ø {stats.download.avg.toFixed(2)} MBit/s (Durchschnitt)</div>
+                        <div>{stats.download.min.toFixed(2)} MBit/s (Minimum)</div>
+                        <div>{stats.download.max.toFixed(2)} MBit/s (Maximum)</div>
+                    </div>
+                )}
+                </div>
+
+                {/* UPLOAD */}
+                <div className="metric">
+                <h3>Upload</h3>
+                <p>{displayData.upload?.toFixed(2) || '0.00'} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
+                
+                {history.length > 0 && (
+                    <div className="sub-metrics">
+                        <div>Ø {stats.upload.avg.toFixed(2)} MBit/s (Durchschnitt)</div>
+                        <div>{stats.upload.min.toFixed(2)} MBit/s (Minimum)</div>
+                        <div>{stats.upload.max.toFixed(2)} MBit/s (Maximum)</div>
+                    </div>
+                )}
+                </div>
+
+                {/* PING */}
+                <div className="metric">
+                <h3>Ping</h3>
+                <p>{displayData.ping?.toFixed(0) || '0'} <br/> <span style={{fontSize: '0.6em'}}>ms</span></p>
+                
+                {history.length > 0 && (
+                    <div className="sub-metrics">
+                        <div>Ø {stats.ping.avg.toFixed(0)} ms (Durchschnitt)</div>
+                        <div>{stats.ping.min.toFixed(0)} ms (Minimum)</div>
+                        <div>{stats.ping.max.toFixed(0)} ms (Maximum)</div>
+                    </div>
+                )}
+                </div>
+            </div>
+            </div>
+        )}
+        
+        {/* CHARTS CONTROLS */}
+        {history.length > 0 && (
+            <div style={{display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px'}}>
+                <span style={{fontWeight: '600', color: 'var(--text-secondary)', alignSelf: 'center'}}>Chart-Ansicht:</span>
+                {[5, 10, 20, 50].map(limit => (
+                    <button 
+                        key={limit}
+                        onClick={() => setChartDataLimit(limit)}
+                        style={{
+                            background: chartDataLimit === limit ? 'var(--primary-gradient)' : 'var(--metric-bg)',
+                            color: chartDataLimit === limit ? 'white' : 'var(--text-color)',
+                            border: '1px solid var(--border-color)',
+                            padding: '5px 12px',
+                            borderRadius: '15px',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            boxShadow: chartDataLimit === limit ? '0 2px 5px rgba(0,0,0,0.2)' : 'none',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {limit}
+                    </button>
+                ))}
+            </div>
+        )}
+
+        {/* CHARTS WRAPPER */}
+        {history.length > 0 && (
+            <div className="charts-row">
+            <div className="card chart-container">
+                <Line key={`speed-${theme}`} options={speedOptions} data={speedData} />
+            </div>
+            <div className="card chart-container">
+                <Line key={`ping-${theme}`} options={pingOptions} data={pingData} />
+            </div>
+            </div>
+        )}
+
+        {/* LIST CARD (SMALLER) */}
+        {history.length > 0 && (
+            <div className="card">
+            <div className="list-header-row">
+                <div className="list-header-left">
+                    <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte {visibleCount} Tests</h2>
+                    <input 
+                        type="range" 
+                        min="3" 
+                        max="50" 
+                        value={visibleCount} 
+                        onChange={(e) => setVisibleCount(Number(e.target.value))}
+                        className="range-slider"
+                        title="Anzahl ändern"
+                    />
+                </div>
+                <div style={{display:'flex', gap: '15px', alignItems: 'center'}}>
+                    <button 
+                        onClick={() => setView('history')}
+                        className="start-btn" 
+                        style={{padding: '8px 20px', fontSize: '0.9rem', background: 'var(--metric-bg)', color: 'var(--text-color)', border: '1px solid var(--border-color)', boxShadow: 'none'}}
+                    >
+                        📜 Historie (Alle)
+                    </button>
+                    <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
+                        CSV Export ⬇
+                    </a>
+                </div>
+            </div>
+            
+            <div className="recent-tests-table-header">
+                <div className="header-time">Uhrzeit</div>
+                <div className="header-server">Server</div>
+                <div className="header-download">Download</div>
+                <div className="header-upload">Upload</div>
+                <div className="header-ping">Ping</div>
+            </div>
+
+            <ul className="recent-tests-list"> 
+                {history.slice(0, visibleCount).map((test, index) => (
+                <li 
+                    key={test.id} 
+                    className={`recent-tests-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
+                    onClick={() => setSelectedTest(test)} 
+                    style={{cursor: 'pointer'}}
+                >
+                    <div className="row-time">
+                    <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                        {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help'}}>
+                            {test.isManual ? '👤' : '🤖'}
+                        </span>
+                    </div>
+                    <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
+                    </div>
+                    
+                    <div className="row-server" title={test.serverLocation}>
+                    {formatServerDisplay(test)}
+                    </div>
+
+                    <div className="row-metric download">
+                    <span className="icon">⬇</span> {test.download.toFixed(0)} <small>MBit/s</small>
+                    </div>
+                    
+                    <div className="row-metric upload">
+                    <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>MBit/s</small>
+                    </div>
+                    
+                    <div className="row-metric ping">
+                    <span className="icon">⚡</span> {test.ping.toFixed(0)} <small>ms</small>
+                    </div>
+                </li>
+                ))}
+            </ul>
+            </div>
+        )}
+      </>
+  );
+
+  const renderFullHistory = () => (
+      <div className="card">
+          <div className="list-header-row" style={{marginBottom: '30px'}}>
+                <button 
+                    onClick={() => setView('dashboard')}
+                    style={{
+                        background: 'none', 
+                        border: 'none', 
+                        fontSize: '1.2rem', 
+                        cursor: 'pointer', 
+                        color: 'var(--text-color)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                    }}
+                >
+                    ⬅ Zurück
+                </button>
+                <h2 style={{margin: 0, border: 'none'}}>Gesamte Historie ({history.length} Einträge)</h2>
+                <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
+                  CSV Export ⬇
+                </a>
+          </div>
+
+          <div className="recent-tests-table-header full-history-header">
+                <div className="header-id">ID</div>
+                <div className="header-time">Zeitpunkt</div>
+                <div className="header-server">Server</div>
+                <div className="header-download">Download</div>
+                <div className="header-upload">Upload</div>
+                <div className="header-ping">Ping</div>
+                <div className="header-packet-loss">Paketverlust</div>
+                <div className="header-country">Land</div>
+            </div>
+
+            <ul className="recent-tests-list"> 
+                {history.map((test, index) => (
+                <li 
+                    key={test.id} 
+                    className={`recent-tests-row full-history-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
+                    onClick={() => setSelectedTest(test)} 
+                    style={{cursor: 'pointer'}}
+                >
+                    <div className="row-id">{test.id}</div>
+                    <div className="row-time">
+                    <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                        {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help'}}>
+                            {test.isManual ? '👤' : '🤖'}
+                        </span>
+                    </div>
+                    <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
+                    </div>
+                    
+                    <div className="row-server" title={test.serverLocation}>
+                    {formatServerDisplay(test)}
+                    </div>
+
+                    <div className="row-metric download">
+                    <span className="icon">⬇</span> {test.download.toFixed(0)} <small>MBit/s</small>
+                    </div>
+                    
+                    <div className="row-metric upload">
+                    <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>MBit/s</small>
+                    </div>
+                    
+                    <div className="row-metric ping">
+                    <span className="icon">⚡</span> {test.ping.toFixed(0)} <small>ms</small>
+                    </div>
+                    
+                    <div className="row-packet-loss">{test.packetLoss ? test.packetLoss.toFixed(2) : '0.00'}%</div>
+                    <div className="row-country">{test.serverCountry || '-'}</div>
+                </li>
+                ))}
+            </ul>
+      </div>
+  );
+
   return (
     <div className="App">
       <div className="theme-toggle-container">
@@ -662,186 +946,9 @@ function App() {
         </button>
       </div>
 
-      <h1>SpeedTest Tracker</h1>
+      <h1 onClick={() => setView('dashboard')} style={{cursor: 'pointer'}}>SpeedTest Tracker</h1>
       
-      <div className="card">
-        <button className="start-btn" onClick={runTest} disabled={loading}>
-          {loading ? 'Speedtest läuft...' : 'Neuen Test starten'}
-        </button>
-        {error && <p style={{color: 'red', marginTop: '10px'}}>{error}</p>}
-      </div>
-
-      {/* HAUPTBEREICH: Combined Metrics (Last Result + Stats) */}
-      {displayData && (
-        <div className="card card-main">
-          <h2>{resultCardTitle}</h2>
-          
-          {/* Datum/Server Zeile ist entfernt, wie gewünscht */}
-          {loading && (
-             <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic'}}>
-               Ermittle Daten...
-             </p>
-          )}
-
-          {!loading && (
-             <div className="next-test-badge">
-               <span className="pulse-dot"></span>
-               Nächster Test: <strong>{getNextRunTime()}</strong>
-             </div>
-          )}
-
-          <div className="results-grid">
-            {/* DOWNLOAD */}
-            <div className="metric">
-              <h3>Download</h3>
-              <p>{displayData.download?.toFixed(2) || '0.00'} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
-              
-              {history.length > 0 && (
-                  <div className="sub-metrics">
-                      <div>Ø {stats.download.avg.toFixed(2)} MBit/s (Durchschnitt)</div>
-                      <div>{stats.download.min.toFixed(2)} MBit/s (Minimum)</div>
-                      <div>{stats.download.max.toFixed(2)} MBit/s (Maximum)</div>
-                  </div>
-              )}
-            </div>
-
-            {/* UPLOAD */}
-            <div className="metric">
-              <h3>Upload</h3>
-              <p>{displayData.upload?.toFixed(2) || '0.00'} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
-              
-              {history.length > 0 && (
-                  <div className="sub-metrics">
-                      <div>Ø {stats.upload.avg.toFixed(2)} MBit/s (Durchschnitt)</div>
-                      <div>{stats.upload.min.toFixed(2)} MBit/s (Minimum)</div>
-                      <div>{stats.upload.max.toFixed(2)} MBit/s (Maximum)</div>
-                  </div>
-              )}
-            </div>
-
-            {/* PING */}
-            <div className="metric">
-              <h3>Ping</h3>
-              <p>{displayData.ping?.toFixed(0) || '0'} <br/> <span style={{fontSize: '0.6em'}}>ms</span></p>
-              
-              {history.length > 0 && (
-                  <div className="sub-metrics">
-                      <div>Ø {stats.ping.avg.toFixed(0)} ms (Durchschnitt)</div>
-                      <div>{stats.ping.min.toFixed(0)} ms (Minimum)</div>
-                      <div>{stats.ping.max.toFixed(0)} ms (Maximum)</div>
-                  </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* CHARTS CONTROLS */}
-      {history.length > 0 && (
-        <div style={{display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px'}}>
-            <span style={{fontWeight: '600', color: 'var(--text-secondary)', alignSelf: 'center'}}>Chart-Ansicht:</span>
-            {[5, 10, 20, 50, 0].map(limit => (
-                <button 
-                    key={limit}
-                    onClick={() => setChartDataLimit(limit)}
-                    style={{
-                        background: chartDataLimit === limit ? 'var(--primary-gradient)' : 'var(--metric-bg)',
-                        color: chartDataLimit === limit ? 'white' : 'var(--text-color)',
-                        border: '1px solid var(--border-color)',
-                        padding: '5px 12px',
-                        borderRadius: '15px',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                        fontWeight: '600',
-                        boxShadow: chartDataLimit === limit ? '0 2px 5px rgba(0,0,0,0.2)' : 'none',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    {limit === 0 ? 'Alle' : limit}
-                </button>
-            ))}
-        </div>
-      )}
-
-      {/* CHARTS WRAPPER */}
-      {history.length > 0 && (
-        <div className="charts-row">
-          <div className="card chart-container">
-            <Line key={`speed-${theme}`} options={speedOptions} data={speedData} />
-          </div>
-          <div className="card chart-container">
-            <Line key={`ping-${theme}`} options={pingOptions} data={pingData} />
-          </div>
-        </div>
-      )}
-
-      {/* LIST CARD */}
-      {history.length > 0 && (
-        <div className="card">
-          <div className="list-header-row">
-              <div className="list-header-left">
-                  <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte {visibleCount} Tests</h2>
-                  <input 
-                    type="range" 
-                    min="3" 
-                    max="50" 
-                    value={visibleCount} 
-                    onChange={(e) => setVisibleCount(Number(e.target.value))}
-                    className="range-slider"
-                    title="Anzahl ändern"
-                  />
-              </div>
-              <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
-                  CSV Export ⬇
-              </a>
-          </div>
-          
-          <div className="recent-tests-table-header">
-              <div className="header-time">Uhrzeit</div>
-              <div className="header-server">Server</div>
-              <div className="header-download">Download</div>
-              <div className="header-upload">Upload</div>
-              <div className="header-ping">Ping</div>
-          </div>
-
-          <ul className="recent-tests-list"> 
-            {history.slice(0, visibleCount).map((test, index) => (
-              <li 
-                key={test.id} 
-                className={`recent-tests-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
-                onClick={() => setSelectedTest(test)} 
-                style={{cursor: 'pointer'}}
-              >
-                <div className="row-time">
-                  <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
-                      {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help'}}>
-                        {test.isManual ? '👤' : '🤖'}
-                      </span>
-                  </div>
-                  <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
-                </div>
-                
-                <div className="row-server" title={test.serverLocation}>
-                  {formatServerDisplay(test)}
-                </div>
-
-                <div className="row-metric download">
-                  <span className="icon">⬇</span> {test.download.toFixed(0)} <small>MBit/s</small>
-                </div>
-                
-                <div className="row-metric upload">
-                  <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>MBit/s</small>
-                </div>
-                
-                <div className="row-metric ping">
-                  <span className="icon">⚡</span> {test.ping.toFixed(0)} <small>ms</small>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {view === 'dashboard' ? renderDashboard() : renderFullHistory()}
 
       {/* SETTINGS MODAL */}
       {showSettings && (

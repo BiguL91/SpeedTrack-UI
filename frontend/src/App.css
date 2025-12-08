@@ -478,12 +478,118 @@ button.start-btn:disabled {
     .row-metric { width: 33%; justify-content: flex-start; }
 }
 
+/* Responsive für kleine Bildschirme: Umbruch */
+@media (max-width: 700px) {
+    .recent-tests-table-header {
+        display: none; /* Header auf kleinen Screens ausblenden */
+    }
+    .recent-tests-row {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+    .row-server {
+        width: 100%;
+        margin: 5px 0 10px 0;
+        flex: none;
+        order: 3; /* Server nach unten schieben bei Umbruch */
+    }
+    .row-time { width: 50%; }
+    .row-metric { width: 33%; justify-content: flex-start; }
+
+    /* Spezifische Anpassungen für Full History auf kleinen Bildschirmen */
+    .full-history-row {
+        grid-template-columns: 50px 1fr 1fr; /* Beispiel: ID, Zeit, Server */
+        gap: 10px;
+        padding: 10px;
+    }
+    .full-history-row .row-id,
+    .full-history-row .row-time,
+    .full-history-row .row-server,
+    .full-history-row .row-metric,
+    .full-history-row .row-packet-loss,
+    .full-history-row .row-isp,
+    .full-history-row .row-country {
+        width: auto;
+        flex: 1 1 auto; /* Erlaubt Flex-Item, sich anzupassen */
+        text-align: left;
+        margin: 0;
+    }
+}
+
+/* Neue Styles für Full History Table */
+.recent-tests-table-header.full-history-header {
+    display: grid;
+    grid-template-columns: 60px 160px 1fr 110px 110px 90px 140px 120px; /* Großzügiger Platz */
+    gap: 15px;
+    padding: 15px 20px;
+    align-items: center;
+}
+
+.recent-tests-table-header.full-history-header > div {
+    text-align: left;
+    white-space: nowrap; /* Kein Umbruch im Header */
+}
+.recent-tests-table-header.full-history-header .header-download,
+.recent-tests-table-header.full-history-header .header-upload,
+.recent-tests-table-header.full-history-header .header-ping,
+.recent-tests-table-header.full-history-header .header-packet-loss {
+    text-align: right;
+}
+
+
+.recent-tests-row.full-history-row {
+    display: grid;
+    grid-template-columns: 60px 160px 1fr 110px 110px 90px 140px 120px; /* Identisch zum Header */
+    gap: 15px;
+    padding: 15px 20px;
+    align-items: center;
+}
+
+.full-history-row .row-id {
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.full-history-row .row-time {
+    width: auto; /* Grid managed width */
+    flex-direction: row; /* nebeneinander */
+    align-items: center;
+    gap: 10px;
+}
+.full-history-row .row-time .row-date {
+    font-size: 0.9rem;
+}
+
+.full-history-row .row-server {
+    white-space: normal; /* Erlaubt Zeilenumbruch */
+    flex: auto;
+    margin: 0;
+}
+.full-history-row .row-metric {
+    width: auto;
+    justify-content: flex-end; /* Rechtsbündig */
+}
+.full-history-row .row-packet-loss {
+    font-weight: 700;
+    color: var(--text-color);
+    text-align: right;
+}
+.full-history-row .row-country {
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
 /* Farbliche Unterscheidung für Test-Typen */
 .recent-tests-row.manual-test-row {
   background-color: rgba(102, 126, 234, 0.05); /* Leichter Blau-Ton */
   border-left: 4px solid #667eea;
   padding-left: 16px; /* Ausgleich für Border */
 }
+
 
 [data-theme='dark'] .recent-tests-row.manual-test-row {
   background-color: rgba(102, 126, 234, 0.1);
