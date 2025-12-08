@@ -167,6 +167,7 @@ function runScheduledTest() {
             console.error('Fehler beim Speichern des geplanten Tests:', err.message);
         } else {
             console.log(`[${timestamp}] Geplanter Test erfolgreich gespeichert.`);
+
         }
       });
 
@@ -266,7 +267,7 @@ app.get('/api/export', (req, res) => {
       return;
     }
 
-    let csvContent = 'ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country\n';
+    let csvContent = 'ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country,Server ID\n';
     
     rows.forEach(row => {
       const escape = (text) => text ? "" + text.toString().split("\"").join("\"\"") + "" : "";
@@ -280,7 +281,8 @@ app.get('/api/export', (req, res) => {
         row.packetLoss,
         escape(row.isp),
         escape(row.serverLocation),
-        escape(row.serverCountry)
+        escape(row.serverCountry),
+        row.serverId || '' // Server ID hinzufügen, falls vorhanden
       ].join(',') + '\n';
     });
 
@@ -378,19 +380,20 @@ app.get('/api/test/stream', (req, res) => {
     const ispMatch = buffer.match(/ISP:\s+(.+)/);
     if (ispMatch) finalResult.isp = ispMatch[1].trim();
     
-    // Server ID und Location versuchen (Format: "Server: Location (id = 12345)")
-    const serverFullMatch = buffer.match(/Server:\s+(.+?)\s+\(id\s*=\s*(\d+)\)/);
-    if (serverFullMatch) {
-        finalResult.serverLocation = serverFullMatch[1].trim();
-        finalResult.serverId = serverFullMatch[2];
-    } else {
-        // Fallback altes Format (Versuche ID zu entfernen falls vorhanden)
-        const serverMatch = buffer.match(/Server:\s+(.+)/);
-        if (serverMatch) {
-            let loc = serverMatch[1].trim();
-            // Entferne (id = ...) falls es im String ist
-            loc = loc.replace(/\s*\(id\s*=\s*\d+\)/i, '');
-            finalResult.serverLocation = loc;
+    // Robusteres Parsing für Server und ID
+    // Suche erst nach der Zeile "Server: ..."
+    const serverLineMatch = buffer.match(/Server:\s+(.+)/);
+    if (serverLineMatch) {
+        let fullServerText = serverLineMatch[1].trim();
+        
+        // Versuche ID zu extrahieren: (id = 12345) oder (id: 12345)
+        const idMatch = fullServerText.match(/\(id\s*[=:]\s*(\d+)\)/i);
+        if (idMatch) {
+            finalResult.serverId = idMatch[1];
+            // Entferne die ID aus dem Location-Namen für saubere Speicherung
+            finalResult.serverLocation = fullServerText.replace(idMatch[0], '').trim();
+        } else {
+            finalResult.serverLocation = fullServerText;
         }
     }
     
