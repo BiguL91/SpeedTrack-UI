@@ -693,7 +693,8 @@ button.start-btn:disabled {
 }
 
 .modal-content select,
-.modal-content input[type="time"] {
+.modal-content input[type="time"],
+.modal-content input[type="number"] {
     background: var(--metric-bg);
     color: var(--text-color);
     border: 2px solid var(--border-color);
@@ -710,7 +711,8 @@ button.start-btn:disabled {
 }
 
 .modal-content select:focus,
-.modal-content input[type="time"]:focus {
+.modal-content input[type="time"]:focus,
+.modal-content input[type="number"]:focus {
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
 }
@@ -731,6 +733,49 @@ button.start-btn:disabled {
 
 .modal-content .form-group input[type="time"] {
   margin-bottom: 15px; /* Gleich wie Select */
+}
+
+/* Modal Button Styling */
+.modal-button,
+.modal-button-danger {
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  padding: 10px 15px; /* Kleineres Padding */
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 12px; /* Etwas abgerundeter */
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.modal-button:hover,
+.modal-button-danger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+.modal-button {
+  background: var(--metric-bg); /* Neutraler Hintergrund */
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  box-shadow: none;
+}
+.modal-button:hover {
+  background: rgba(102, 126, 234, 0.1);
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.modal-button-danger {
+  background-color: #e74c3c; /* Rot für Gefahr */
+  background-image: none; /* Gradient entfernen, da background-color genutzt wird */
+}
+.modal-button-danger:hover {
+  background-color: #c0392b;
 }
 
 @keyframes slideIn {

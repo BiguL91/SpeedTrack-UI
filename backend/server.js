@@ -53,6 +53,13 @@ function createSettingsTable() {
           db.run("INSERT INTO settings (key, value) VALUES ('cron_schedule', ?)", [defaultSchedule]);
         }
       });
+      // Standardwert für retention_period setzen, falls nicht vorhanden (0 = nie löschen)
+      const checkRetentionSql = "SELECT value FROM settings WHERE key = 'retention_period'";
+      db.get(checkRetentionSql, [], (err, row) => {
+        if (!row) {
+          db.run("INSERT INTO settings (key, value) VALUES ('retention_period', ?)", ['0']); // Default: Nie löschen
+        }
+      });
     }
   });
 }
@@ -105,6 +112,37 @@ function createTable() {
     }
   });
 }
+
+// --- Datenbank-Bereinigung ---
+function cleanupDatabase() {
+    db.get("SELECT value FROM settings WHERE key = 'retention_period'", [], (err, row) => {
+        if (err) {
+            console.error('Fehler beim Abrufen der Aufbewahrungsdauer:', err.message);
+            return;
+        }
+
+        const retentionDays = parseInt(row ? row.value : '0');
+
+        if (retentionDays > 0) {
+            const deleteSql = `DELETE FROM results WHERE timestamp < date('now', '-${retentionDays} days')`;
+            db.run(deleteSql, function(deleteErr) {
+                if (deleteErr) {
+                    console.error('Fehler bei der Datenbankbereinigung:', deleteErr.message);
+                } else {
+                    console.log(`[${new Date().toISOString()}] Datenbankbereinigung: ${this.changes} Einträge älter als ${retentionDays} Tage gelöscht.`);
+                }
+            });
+        } else {
+            console.log(`[${new Date().toISOString()}] Datenbankbereinigung: Keine Einträge gelöscht (Aufbewahrungsdauer ist 0).`);
+        }
+    });
+}
+
+// Täglich um 00:00 Uhr die Datenbank bereinigen
+cron.schedule('0 0 * * *', () => {
+    console.log(`[${new Date().toISOString()}] Starte geplante Datenbankbereinigung.`);
+    cleanupDatabase();
+});
 
 // --- Automatischer Hintergrund-Test ---
 function runScheduledTest() {
@@ -209,33 +247,81 @@ setTimeout(() => {
 
 // API Routen
 app.get('/api/settings', (req, res) => {
-    db.get("SELECT value FROM settings WHERE key = 'cron_schedule'", [], (err, row) => {
+    // Holen beider Einstellungen
+    db.get("SELECT value FROM settings WHERE key = 'cron_schedule'", [], (err, cronRow) => {
         if (err) {
             res.status(500).json({ error: err.message });
             return;
         }
-        res.json({ cron_schedule: row ? row.value : '0 * * * *' });
+        db.get("SELECT value FROM settings WHERE key = 'retention_period'", [], (err, retentionRow) => {
+            if (err) {
+                res.status(500).json({ error: err.message });
+                return;
+            }
+            res.json({ 
+                cron_schedule: cronRow ? cronRow.value : '0 * * * *',
+                retention_period: retentionRow ? retentionRow.value : '0'
+            });
+        });
     });
 });
 
 app.post('/api/settings', (req, res) => {
-    const { cron_schedule } = req.body;
-    
-    if (!cron.validate(cron_schedule)) {
-        return res.status(400).json({ error: "Ungültiges Cron-Format" });
+    const { cron_schedule, retention_period } = req.body;
+    let updates = [];
+    let params = [];
+
+    // Cron Schedule verarbeiten
+    if (cron_schedule !== undefined) {
+        if (!cron.validate(cron_schedule)) {
+            return res.status(400).json({ error: "Ungültiges Cron-Format" });
+        }
+        updates.push("INSERT OR REPLACE INTO settings (key, value) VALUES ('cron_schedule', ?)");
+        params.push(cron_schedule);
     }
 
-    const sql = "INSERT OR REPLACE INTO settings (key, value) VALUES ('cron_schedule', ?)";
-    db.run(sql, [cron_schedule], (err) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
+    // Retention Period verarbeiten
+    if (retention_period !== undefined) {
+        const parsedRetention = parseInt(retention_period);
+        if (isNaN(parsedRetention) || parsedRetention < 0) {
+            return res.status(400).json({ error: "Ungültige Aufbewahrungsdauer" });
         }
-        
-        // Cronjob zur Laufzeit aktualisieren!
-        startCronJob(cron_schedule);
-        
-        res.json({ message: "Einstellungen gespeichert", cron_schedule });
+        updates.push("INSERT OR REPLACE INTO settings (key, value) VALUES ('retention_period', ?)");
+        params.push(parsedRetention.toString());
+    }
+
+    if (updates.length === 0) {
+        return res.status(400).json({ error: "Keine Einstellungen zum Speichern bereitgestellt." });
+    }
+
+    // Transaktion für atomare Updates
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION;");
+        updates.forEach((sql, index) => {
+            db.run(sql, [params[index]], (err) => {
+                if (err) {
+                    db.run("ROLLBACK;");
+                    res.status(500).json({ error: err.message });
+                    return;
+                }
+            });
+        });
+        db.run("COMMIT;", (commitErr) => {
+            if (commitErr) {
+                res.status(500).json({ error: commitErr.message });
+            } else {
+                // Cronjob zur Laufzeit aktualisieren, falls cron_schedule geändert wurde
+                if (cron_schedule !== undefined) {
+                    startCronJob(cron_schedule);
+                }
+                // Cleanup einmal ausführen nach Änderung der Aufbewahrungsdauer
+                if (retention_period !== undefined && parseInt(retention_period) > 0) {
+                    cleanupDatabase();
+                }
+
+                res.json({ message: "Einstellungen gespeichert", cron_schedule, retention_period });
+            }
+        });
     });
 });
 
@@ -256,6 +342,37 @@ app.get('/api/history', (req, res) => {
     }
     res.json(rows);
   });
+});
+
+// Endpoint zum Leeren der Datenbank
+app.post('/api/reset-db', (req, res) => {
+    const deleteSql = "DELETE FROM results";
+    const resetSeqSql = "DELETE FROM sqlite_sequence WHERE name='results'";
+
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION;");
+        db.run(deleteSql, (err) => {
+            if (err) {
+                db.run("ROLLBACK;");
+                res.status(500).json({ error: err.message });
+                return;
+            }
+        });
+        db.run(resetSeqSql, (err) => {
+            if (err) {
+                db.run("ROLLBACK;");
+                res.status(500).json({ error: err.message });
+                return;
+            }
+        });
+        db.run("COMMIT;", (err) => {
+            if (err) {
+                res.status(500).json({ error: err.message });
+            } else {
+                res.json({ message: "Datenbank erfolgreich geleert." });
+            }
+        });
+    });
 });
 
 // CSV Export Endpoint

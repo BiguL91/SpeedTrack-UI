@@ -61,6 +61,12 @@ function App() {
   // View State: 'dashboard' oder 'history'
   const [view, setView] = useState('dashboard');
 
+  // Einstellung für Datenvorhaltung (in Tagen, 0 = nie löschen)
+  const [retentionPeriod, setRetentionPeriod] = useState('0');
+  
+  // Confirm Flow State: null -> 'backup' -> 'delete'
+  const [confirmStep, setConfirmStep] = useState(null);
+
   // Toast Notification State
   const [notification, setNotification] = useState(null); // { message: '', type: 'success' | 'error' }
 
@@ -316,8 +322,10 @@ function App() {
     try {
         const response = await axios.get('/api/settings');
         const loadedCron = response.data.cron_schedule;
+        const loadedRetention = response.data.retention_period;
         setCronSchedule(loadedCron);
-        parseCronToState(loadedCron); // UI updaten
+        parseCronToState(loadedCron); 
+        setRetentionPeriod(loadedRetention);
     } catch (err) {
         console.error("Fehler beim Laden der Einstellungen", err);
     }
@@ -327,14 +335,48 @@ function App() {
   const saveSettings = async () => {
     try {
         const newCron = generateCron(intervalBase, startTime);
-        await axios.post('/api/settings', { cron_schedule: newCron });
+        const newRetention = retentionPeriod; // Wert direkt aus dem State nehmen
+        await axios.post('/api/settings', { 
+            cron_schedule: newCron,
+            retention_period: newRetention
+        });
         
         setCronSchedule(newCron);
+        setRetentionPeriod(newRetention);
         setShowSettings(false);
-        showToast("Zeitplan erfolgreich gespeichert! ✅", "success");
+        showToast("Einstellungen erfolgreich gespeichert! ✅", "success");
     } catch (err) {
         showToast("Fehler beim Speichern: " + (err.response?.data?.error || err.message), "error");
     }
+  };
+
+  // --- RESET DATABASE FLOW ---
+  const startResetFlow = () => {
+      setConfirmStep('backup');
+  };
+
+  const handleBackupChoice = (shouldBackup) => {
+      if (shouldBackup) {
+          const link = document.createElement('a');
+          link.href = '/api/export';
+          link.setAttribute('download', 'speedtest_backup.csv');
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+      }
+      setConfirmStep('delete');
+  };
+
+  const handleFinalDelete = async () => {
+      try {
+          await axios.post('/api/reset-db');
+          showToast("Datenbank erfolgreich geleert! 🗑️", "success");
+          fetchHistory(); // Ansicht aktualisieren
+          setConfirmStep(null);
+          setShowSettings(false); // Modal schließen
+      } catch (err) {
+          showToast("Fehler beim Leeren der DB: " + (err.response?.data?.error || err.message), "error");
+      }
   };
 
   // Theme Logik
@@ -954,44 +996,100 @@ function App() {
       {showSettings && (
         <div className="modal-overlay">
           <div className="modal-content card">
-            <h2>⚙️ Einstellungen</h2>
-            <div className="form-group">
-                <label>Intervall:</label>
-                <select 
-                    value={intervalBase} 
-                    onChange={(e) => setIntervalBase(e.target.value)}
-                    style={{width: '100%', padding: '10px', marginTop: '5px', marginBottom: '15px'}}
-                >
-                    <option value="5m">Alle 5 Minuten</option>
-                    <option value="10m">Alle 10 Minuten</option>
-                    <option value="30m">Alle 30 Minuten</option>
-                    <option value="1h">Jede Stunde</option>
-                    <option value="2h">Alle 2 Stunden</option>
-                    <option value="3h">Alle 3 Stunden</option>
-                    <option value="4h">Alle 4 Stunden</option>
-                    <option value="6h">Alle 6 Stunden</option>
-                    <option value="12h">Alle 12 Stunden</option>
-                    <option value="24h">Täglich</option>
-                </select>
-                
-                <label>Startzeit / Referenzzeit:</label>
-                <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '5px'}}>
-                   Der Test-Zyklus orientiert sich an dieser Zeit.
-                </div>
-                <input 
-                    type="time" 
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                />
+            {confirmStep === 'backup' && (
+                <>
+                    <h2>⚠️ Datensicherung</h2>
+                    <p style={{fontSize: '1rem', marginBottom: '30px'}}>
+                        Möchtest du vor dem Löschen ein Backup deiner Historie als CSV herunterladen?
+                    </p>
+                    <div className="modal-actions" style={{display: 'flex', justifyContent: 'space-between', gap: '10px'}}>
+                        <button className="modal-button" style={{backgroundColor: '#666'}} onClick={() => setConfirmStep(null)}>Abbrechen</button>
+                        <div style={{display: 'flex', gap: '10px'}}>
+                            <button className="modal-button" onClick={() => handleBackupChoice(false)}>Nein, nur löschen</button>
+                            <button className="modal-button" style={{background: 'var(--primary-gradient)'}} onClick={() => handleBackupChoice(true)}>Ja, Backup laden</button>
+                        </div>
+                    </div>
+                </>
+            )}
 
-                <p style={{fontSize: '0.8rem', color: '#666'}}>
-                    Generierter Cron-Job: <code>{generateCron(intervalBase, startTime)}</code>
-                </p>
-            </div>
-            <div className="modal-actions" style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
-                <button className="start-btn" style={{backgroundColor: '#666'}} onClick={() => setShowSettings(false)}>Abbrechen</button>
-                <button className="start-btn" onClick={() => saveSettings()}>Speichern</button>
-            </div>
+            {confirmStep === 'delete' && (
+                <>
+                    <h2 style={{color: '#e74c3c', borderColor: '#e74c3c'}}>🚨 Endgültig löschen?</h2>
+                    <p style={{fontSize: '1rem', marginBottom: '30px', fontWeight: 'bold'}}>
+                        Bist du sicher? Dieser Vorgang kann nicht rückgängig gemacht werden. Alle gespeicherten Testergebnisse werden gelöscht.
+                    </p>
+                    <div className="modal-actions" style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
+                        <button className="modal-button" onClick={() => setConfirmStep(null)}>Abbrechen</button>
+                        <button className="modal-button-danger" onClick={handleFinalDelete}>Ja, alles löschen</button>
+                    </div>
+                </>
+            )}
+
+            {!confirmStep && (
+                <>
+                    <h2>⚙️ Einstellungen</h2>
+                    <div className="form-group">
+                        <label>Intervall:</label>
+                        <select 
+                            value={intervalBase} 
+                            onChange={(e) => setIntervalBase(e.target.value)}
+                            style={{width: '100%', padding: '10px', marginTop: '5px', marginBottom: '15px'}}
+                        >
+                            <option value="5m">Alle 5 Minuten</option>
+                            <option value="10m">Alle 10 Minuten</option>
+                            <option value="30m">Alle 30 Minuten</option>
+                            <option value="1h">Jede Stunde</option>
+                            <option value="2h">Alle 2 Stunden</option>
+                            <option value="3h">Alle 3 Stunden</option>
+                            <option value="4h">Alle 4 Stunden</option>
+                            <option value="6h">Alle 6 Stunden</option>
+                            <option value="12h">Alle 12 Stunden</option>
+                            <option value="24h">Täglich</option>
+                        </select>
+                        
+                        <label>Startzeit / Referenzzeit:</label>
+                        <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '5px'}}>
+                        Der Test-Zyklus orientiert sich an dieser Zeit.
+                        </div>
+                        <input 
+                            type="time" 
+                            value={startTime}
+                            onChange={(e) => setStartTime(e.target.value)}
+                        />
+
+                        <p style={{fontSize: '0.8rem', color: '#666'}}>
+                            Generierter Cron-Job: <code>{generateCron(intervalBase, startTime)}</code>
+                        </p>
+                    </div>
+                    
+                    <div className="form-group" style={{marginTop: '20px'}}>
+                        <label>Daten aufbewahren für (Tage):</label>
+                        <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '5px'}}>
+                        Alte Tests werden automatisch gelöscht. 0 = Nie löschen.
+                        </div>
+                        <input 
+                            type="number" 
+                            min="0"
+                            value={retentionPeriod}
+                            onChange={(e) => setRetentionPeriod(e.target.value)}
+                            style={{width: '100%', padding: '10px'}}
+                        />
+                    </div>
+
+                    <div className="modal-actions" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '30px'}}>
+                        <button 
+                            className="modal-button-danger" 
+                            onClick={startResetFlow}
+                        >
+                            🗑️ Datenbank leeren
+                        </button>
+                        <div style={{display: 'flex', gap: '10px'}}>
+                            <button className="modal-button" style={{backgroundColor: '#666'}} onClick={() => setShowSettings(false)}>Abbrechen</button>
+                            <button className="modal-button" onClick={() => saveSettings()}>Speichern</button>
+                        </div>
+                    </div>
+                </>
+            )}
           </div>
         </div>
       )}
