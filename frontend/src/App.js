@@ -48,7 +48,12 @@ function App() {
   
   // Settings State
   const [showSettings, setShowSettings] = useState(false);
-  const [cronSchedule, setCronSchedule] = useState('0 * * * *'); // Default
+  const [cronSchedule, setCronSchedule] = useState('0 * * * *'); // Der "echte" Cron-String für Backend
+  
+  // UI State für den Settings-Dialog
+  const [intervalBase, setIntervalBase] = useState('1h'); // '5m', '10m', '30m', '1h', '2h', '3h', '4h', '6h', '12h', '24h'
+  const [startTime, setStartTime] = useState('00:00'); // HH:mm
+
   const [visibleCount, setVisibleCount] = useState(5); // Wie viele Tests anzeigen?
   const [selectedTest, setSelectedTest] = useState(null); // Für Detail-Ansicht
   const [chartDataLimit, setChartDataLimit] = useState(20); // Wie viele Tests im Chart anzeigen? (0 = Alle)
@@ -61,6 +66,223 @@ function App() {
     setTimeout(() => {
       setNotification(null);
     }, 3000); // Nach 3 Sekunden ausblenden
+  };
+
+  // --- CRON LOGIC HELPERS ---
+
+  // Generiert den Cron-String aus Intervall und Startzeit
+  const generateCron = (interval, timeStr) => {
+    const [hh, mm] = timeStr.split(':').map(Number);
+    
+    if (interval === '5m') {
+        // Alle 5 Min ab MM. 
+        // Node-cron syntax für offset: "3-59/5 * * * *" startet bei Minute 3
+        const startMin = mm % 5;
+        return `${startMin}-59/5 * * * *`;
+    }
+    if (interval === '10m') {
+        const startMin = mm % 10;
+        return `${startMin}-59/10 * * * *`;
+    }
+    if (interval === '30m') {
+        const startMin = mm % 30;
+        return `${startMin}-59/30 * * * *`;
+    }
+    if (interval === '1h') {
+        // Jede Stunde bei Minute mm
+        return `${mm} * * * *`;
+    }
+    if (interval === '24h') {
+        // Täglich um hh:mm
+        return `${mm} ${hh} * * *`;
+    }
+    
+    // Für X Stunden (2, 3, 4, 6, 12)
+    // Wir müssen eine Liste von Stunden generieren, startend bei hh
+    const hoursGap = parseInt(interval.replace('h', ''));
+    if (!isNaN(hoursGap)) {
+        let hours = [];
+        // Finde den ersten Startpunkt am Tag (könnte gestern gewesen sein, aber wir nehmen hh als Anker)
+        // Wir wollen: hh, hh+gap, hh+2gap... modulo 24.
+        // Sortiert aufsteigend für Cron.
+        
+        let startHour = hh % hoursGap; // Normalisiert auf den Tag
+        // Wenn User 14:00 wählt und alle 4h, dann: 2, 6, 10, 14, 18, 22.
+        // Das ist besser als stur bei 14 anzufangen und 14, 18, 22, (morgen 02) zu machen.
+        // Wir richten es am Tag aus, damit der Cron clean bleibt "2,6,10,14...".
+        // ABER: Wenn User explizit 14:00 will, erwartet er vllt dass 14:00 der ERSTE ist.
+        // Bei Cron "2,6,10,14" läuft er um 2 Uhr nachts auch. Das ist bei "Alle 4h" aber korrekt.
+        // Nur "Täglich" ist einmalig.
+        
+        for (let h = startHour; h < 24; h += hoursGap) {
+            hours.push(h);
+        }
+        return `${mm} ${hours.join(',')} * * *`;
+    }
+
+    return '0 * * * *'; // Fallback
+  };
+
+  // Liest den Cron-String und setzt UI States (Best Guess)
+  const parseCronToState = (cronStr) => {
+    try {
+        const parts = cronStr.split(' ');
+        const minPart = parts[0];
+        const hourPart = parts[1];
+
+        let parsedTime = '00:00';
+        let parsedInterval = '1h';
+
+        // Helper für Minute
+        const getMin = (p) => {
+            if (p.includes('-')) return parseInt(p.split('-')[0]); // "3-59/5" -> 3
+            if (p.includes('/')) return 0; // "*/5" -> 0
+            return parseInt(p); // "15" -> 15
+        };
+        
+        const mm = getMin(minPart);
+        const mmStr = mm.toString().padStart(2, '0');
+
+        // Check Interval
+        if (minPart.includes('/5')) { parsedInterval = '5m'; parsedTime = `00:${mmStr}`; }
+        else if (minPart.includes('/10')) { parsedInterval = '10m'; parsedTime = `00:${mmStr}`; }
+        else if (minPart.includes('/30')) { parsedInterval = '30m'; parsedTime = `00:${mmStr}`; }
+        else if (hourPart === '*') {
+            // Hourly: "15 * * * *"
+            parsedInterval = '1h';
+            parsedTime = `00:${mmStr}`; // Stunde egal bei stündlich, wir zeigen nur Min an eigentlich, aber User hat Input type=time
+        }
+        else if (hourPart.includes(',') || !isNaN(parseInt(hourPart))) {
+            // Liste "2,6,10" oder Einzelwert "14"
+            const hours = hourPart.split(',').map(Number);
+            
+            if (hours.length === 1) {
+                // Täglich
+                parsedInterval = '24h';
+                parsedTime = `${hours[0].toString().padStart(2, '0')}:${mmStr}`;
+            } else {
+                // X Stunden
+                // Abstand ermitteln
+                const gap = hours.length > 1 ? (hours[1] - hours[0]) : 24;
+                parsedInterval = `${gap}h`;
+                
+                // Als Startzeit nehmen wir die erste Stunde in der Liste, oder besser:
+                // Wir versuchen die aktuelle Zeit zu matchen? Nein, einfach die erste der Liste.
+                // Oder wir lassen den User 00:mm sehen.
+                // Nehmen wir die erste Stunde der Liste.
+                parsedTime = `${hours[0].toString().padStart(2, '0')}:${mmStr}`;
+            }
+        }
+        
+        setIntervalBase(parsedInterval);
+        setStartTime(parsedTime);
+
+    } catch (e) {
+        console.error("Fehler beim Parsen des Cron Strings für UI", e);
+        // Fallbacks
+        setIntervalBase('1h');
+        setStartTime('00:00');
+    }
+  };
+
+  const getNextRunTime = () => {
+    if (!cronSchedule) return 'Lädt...';
+
+    try {
+        const parser = (str) => {
+            // Sehr rudimentärer Parser für die Anzeige
+            const now = new Date();
+            let next = new Date(now);
+            next.setMilliseconds(0);
+            next.setSeconds(0);
+
+            const parts = str.split(' ');
+            const minStr = parts[0];
+            const hourStr = parts[1];
+
+            // 1. Minute bestimmen
+            let addHour = false;
+            
+            // Logik für Minuten-Intervall
+            if (minStr.includes('/')) {
+                // z.B. 3-59/5 oder */5
+                const offset = minStr.includes('-') ? parseInt(minStr.split('-')[0]) : 0;
+                const step = parseInt(minStr.split('/')[1]);
+                
+                // Nächster Step finden
+                let found = false;
+                for (let m = offset; m < 60; m += step) {
+                    if (m > now.getMinutes()) {
+                        next.setMinutes(m);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    next.setMinutes(offset); // Nächste Stunde, erster Slot
+                    addHour = true;
+                }
+            } else {
+                // Feste Minute (z.B. "15")
+                const fixedMin = parseInt(minStr);
+                next.setMinutes(fixedMin);
+                if (now.getMinutes() >= fixedMin) {
+                    addHour = true;
+                }
+            }
+
+            // 2. Stunde bestimmen
+            if (hourStr === '*') {
+                if (addHour) next.setHours(now.getHours() + 1);
+            } else {
+                // Feste Stunden oder Liste (2,6,10)
+                const validHours = hourStr.split(',').map(Number).sort((a,b)=>a-b);
+                
+                let currentH = now.getHours();
+                if (addHour) currentH++; // Wir sind schon über die Minute hinaus in dieser Stunde
+
+                // Suche nächste valide Stunde
+                let foundH = -1;
+                for (let h of validHours) {
+                    if (h >= currentH) {
+                        foundH = h;
+                        break;
+                    }
+                }
+
+                if (foundH !== -1) {
+                    next.setHours(foundH);
+                    // Falls wir heute sind aber die Stunde "kleiner" ist als jetzt (passiert nicht durch loop)
+                    // Falls wir durch addHour in den nächsten Tag rutschen würden (z.B. 23 Uhr -> 24 Uhr)
+                    if (foundH < now.getHours()) {
+                         next.setDate(now.getDate() + 1);
+                    }
+                } else {
+                    // Keine Stunde mehr heute übrig -> Nimm erste Stunde morgen
+                    next.setDate(now.getDate() + 1);
+                    next.setHours(validHours[0]);
+                }
+            }
+            
+            return next;
+        };
+
+        const nextDate = parser(cronSchedule);
+        
+        // Formatierung
+        const now = new Date();
+        const isToday = nextDate.getDate() === now.getDate() && nextDate.getMonth() === now.getMonth();
+        const isTomorrow = new Date(now.getTime() + 86400000).getDate() === nextDate.getDate();
+        const timeStr = nextDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+        if (isToday) return `Heute, ${timeStr} Uhr`;
+        if (isTomorrow) return `Morgen, ${timeStr} Uhr`;
+        return `${nextDate.toLocaleDateString()} ${timeStr} Uhr`;
+
+    } catch (err) {
+      console.error("NextRun Parser Fehler:", err);
+      return cronSchedule;
+    }
   };
 
   // Helper um Server Location sauber anzuzeigen (ohne ID im Text) und zu formatieren
@@ -87,110 +309,24 @@ function App() {
       return formattedString;
   };
 
-  const getNextRunTime = () => {
-    if (!cronSchedule) return 'Lädt...';
-
-    try {
-      const now = new Date();
-      let next = new Date(now);
-      
-      // Einfacher Parser für unsere spezifischen Dropdown-Werte
-      if (cronSchedule === '*/5 * * * *') {
-        // Nächste 5 Minuten Marke
-        const minutes = now.getMinutes();
-        const remainder = minutes % 5;
-        next.setMinutes(minutes + (5 - remainder));
-        next.setSeconds(0);
-        next.setMilliseconds(0);
-      }
-      else if (cronSchedule === '*/10 * * * *') {
-        // Nächste 10 Minuten Marke
-        const minutes = now.getMinutes();
-        const remainder = minutes % 10;
-        next.setMinutes(minutes + (10 - remainder));
-        next.setSeconds(0);
-        next.setMilliseconds(0);
-      }
-      else if (cronSchedule === '*/30 * * * *') {
-        // Nächste volle Stunde
-        next.setHours(now.getHours() + 1);
-        next.setMinutes(0);
-        next.setSeconds(0);
-        next.setMilliseconds(0);
-      }
-      else if (cronSchedule.startsWith('0 */')) {
-        // Alle X Stunden (z.B. "0 */4 * * *")
-        const parts = cronSchedule.split(' ');
-        const hourPart = parts[1]; // "*/4"
-        const interval = parseInt(hourPart.split('/')[1]); // 4
-        
-        // Finde nächste Stunde, die durch interval teilbar ist (vereinfacht: einfach + interval ab jetzt, oder sauberer am Tag ausgerichtet)
-        // Wir machen es einfach: Nächste volle Stunde + Rest bis zum Intervall
-        // Besser: Wir nehmen an, es läuft ab 0 Uhr. 
-        // Aktuelle Stunde 14, Intervall 4. -> 0, 4, 8, 12, 16. Nächster ist 16.
-        const currentHour = now.getHours();
-        let nextHour = currentHour + 1;
-        while (nextHour % interval !== 0) {
-            nextHour++;
-        }
-        
-        // Wenn wir über 24h gehen, ist es morgen
-        if (nextHour >= 24) {
-             next.setDate(now.getDate() + 1);
-             next.setHours(nextHour - 24);
-        } else {
-             next.setHours(nextHour);
-        }
-        next.setMinutes(0);
-        next.setSeconds(0);
-        next.setMilliseconds(0);
-      }
-      else if (cronSchedule === '0 0 * * *') {
-        // Morgen 00:00
-        next.setDate(now.getDate() + 1);
-        next.setHours(0);
-        next.setMinutes(0);
-        next.setSeconds(0);
-        next.setMilliseconds(0);
-      } 
-      else {
-        // Fallback für unbekannte Patterns (wir zeigen einfach nichts an oder den Rohwert)
-        return cronSchedule; 
-      }
-
-      // Formatierung
-      const isToday = next.getDate() === now.getDate() && next.getMonth() === now.getMonth() && next.getFullYear() === now.getFullYear();
-      const isTomorrow = new Date(now.getTime() + 86400000).getDate() === next.getDate();
-      const timeStr = next.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      
-      if (isToday) {
-        return `Heute, ${timeStr} Uhr`;
-      } else if (isTomorrow) {
-        return `Morgen, ${timeStr} Uhr`;
-      } else {
-        return `${next.toLocaleDateString()} ${timeStr} Uhr`;
-      }
-
-    } catch (err) {
-      console.error("Custom Parser Fehler:", err);
-      return cronSchedule;
-    }
-  };
-
   const fetchSettings = useCallback(async () => {
     try {
         const response = await axios.get('/api/settings');
-        setCronSchedule(response.data.cron_schedule);
+        const loadedCron = response.data.cron_schedule;
+        setCronSchedule(loadedCron);
+        parseCronToState(loadedCron); // UI updaten
     } catch (err) {
         console.error("Fehler beim Laden der Einstellungen", err);
     }
   }, []);
 
   // Settings speichern
-  const saveSettings = async (newSchedule) => {
+  const saveSettings = async () => {
     try {
-        await axios.post('/api/settings', { cron_schedule: newSchedule });
-        setCronSchedule(newSchedule);
+        const newCron = generateCron(intervalBase, startTime);
+        await axios.post('/api/settings', { cron_schedule: newCron });
+        
+        setCronSchedule(newCron);
         setShowSettings(false);
         showToast("Zeitplan erfolgreich gespeichert! ✅", "success");
     } catch (err) {
@@ -713,30 +849,41 @@ function App() {
           <div className="modal-content card">
             <h2>⚙️ Einstellungen</h2>
             <div className="form-group">
-                <label>Automatischer Test-Intervall:</label>
+                <label>Intervall:</label>
                 <select 
-                    value={cronSchedule} 
-                    onChange={(e) => setCronSchedule(e.target.value)}
-                    style={{width: '100%', padding: '10px', marginTop: '10px', marginBottom: '20px'}}
+                    value={intervalBase} 
+                    onChange={(e) => setIntervalBase(e.target.value)}
+                    style={{width: '100%', padding: '10px', marginTop: '5px', marginBottom: '15px'}}
                 >
-                    <option value="*/5 * * * *">Alle 5 Minuten</option>
-                    <option value="*/10 * * * *">Alle 10 Minuten</option>
-                    <option value="*/30 * * * *">Alle 30 Minuten</option>
-                    <option value="0 * * * *">Jede Stunde</option>
-                    <option value="0 */2 * * *">Alle 2 Stunden</option>
-                    <option value="0 */3 * * *">Alle 3 Stunden</option>
-                    <option value="0 */4 * * *">Alle 4 Stunden</option>
-                    <option value="0 */6 * * *">Alle 6 Stunden</option>
-                    <option value="0 */12 * * *">Alle 12 Stunden</option>
-                    <option value="0 0 * * *">Täglich (00:00 Uhr)</option>
+                    <option value="5m">Alle 5 Minuten</option>
+                    <option value="10m">Alle 10 Minuten</option>
+                    <option value="30m">Alle 30 Minuten</option>
+                    <option value="1h">Jede Stunde</option>
+                    <option value="2h">Alle 2 Stunden</option>
+                    <option value="3h">Alle 3 Stunden</option>
+                    <option value="4h">Alle 4 Stunden</option>
+                    <option value="6h">Alle 6 Stunden</option>
+                    <option value="12h">Alle 12 Stunden</option>
+                    <option value="24h">Täglich</option>
                 </select>
+                
+                <label>Startzeit / Referenzzeit:</label>
+                <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '5px'}}>
+                   Der Test-Zyklus orientiert sich an dieser Zeit.
+                </div>
+                <input 
+                    type="time" 
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                />
+
                 <p style={{fontSize: '0.8rem', color: '#666'}}>
-                    Aktueller Cron-Wert: <code>{cronSchedule}</code>
+                    Generierter Cron-Job: <code>{generateCron(intervalBase, startTime)}</code>
                 </p>
             </div>
             <div className="modal-actions" style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
                 <button className="start-btn" style={{backgroundColor: '#666'}} onClick={() => setShowSettings(false)}>Abbrechen</button>
-                <button className="start-btn" onClick={() => saveSettings(cronSchedule)}>Speichern</button>
+                <button className="start-btn" onClick={() => saveSettings()}>Speichern</button>
             </div>
           </div>
         </div>

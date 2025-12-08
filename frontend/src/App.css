@@ -586,12 +586,45 @@ button.start-btn:disabled {
     margin-bottom: 20px;
 }
 
-.modal-content select {
+.modal-content select,
+.modal-content input[type="time"] {
     background: var(--metric-bg);
     color: var(--text-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
     font-size: 1rem;
+    padding: 12px 15px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    width: 100%; /* Sicherstellen, dass beide volle Breite haben */
+    box-sizing: border-box; /* Padding & Border werden in Breite inkludiert */
+    margin-bottom: 15px; /* Konsistenter Abstand nach unten */
+}
+
+.modal-content select:focus,
+.modal-content input[type="time"]:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.modal-content input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.5); /* Neutrales Grau */
+    cursor: pointer;
+}
+
+[data-theme='dark'] .modal-content input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.9); /* Fast Weiß im Dark Mode */
+}
+
+.modal-content .form-group select {
+  margin-bottom: 15px; /* Sicherstellen, dass der Select auch diesen Abstand hat */
+  margin-top: 5px; /* Der ursprüngliche Margin-Top vom Select */
+}
+
+.modal-content .form-group input[type="time"] {
+  margin-bottom: 15px; /* Gleich wie Select */
 }
 
 @keyframes slideIn {
