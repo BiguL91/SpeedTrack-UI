@@ -811,40 +811,45 @@ function App() {
                         </div>
                     </div>
                     
-                    {/* CHARTS CONTROLS */}        {history.length > 0 && (
-            <div style={{display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px'}}>
-                <span style={{fontWeight: '600', color: 'var(--text-secondary)', alignSelf: 'center'}}>Chart-Ansicht:</span>
-                {[5, 10, 20, 50].map(limit => (
-                    <button 
-                        key={limit}
-                        onClick={() => setChartDataLimit(limit)}
-                        style={{
-                            background: chartDataLimit === limit ? 'var(--primary-gradient)' : 'var(--metric-bg)',
-                            color: chartDataLimit === limit ? 'white' : 'var(--text-color)',
-                            border: '1px solid var(--border-color)',
-                            padding: '5px 12px',
-                            borderRadius: '15px',
-                            cursor: 'pointer',
-                            fontSize: '0.85rem',
-                            fontWeight: '600',
-                            boxShadow: chartDataLimit === limit ? '0 2px 5px rgba(0,0,0,0.2)' : 'none',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        {limit}
-                    </button>
-                ))}
-            </div>
-        )}
-
         {/* CHARTS WRAPPER */}
         {history.length > 0 && (
             <div className="charts-row">
-            <div className="card chart-container">
-                <Line key={`speed-${theme}`} options={speedOptions} data={speedData} />
+            <div className="card chart-container" style={{display: 'flex', flexDirection: 'column'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+                    <h3 style={{margin: 0, fontSize: '1.1rem', color: 'var(--text-color)'}}>Geschwindigkeit</h3>
+                    <div style={{display: 'flex', gap: '5px'}}>
+                        {[5, 10, 20, 50, 0].map(limit => (
+                            <button 
+                                key={limit}
+                                onClick={() => setChartDataLimit(limit)}
+                                style={{
+                                    background: chartDataLimit === limit ? 'var(--primary-gradient)' : 'transparent',
+                                    color: chartDataLimit === limit ? 'white' : 'var(--text-secondary)',
+                                    border: '1px solid ' + (chartDataLimit === limit ? 'transparent' : 'var(--border-color)'),
+                                    padding: '2px 8px',
+                                    borderRadius: '10px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '600',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {limit === 0 ? 'Alle' : limit}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div style={{flex: 1, minHeight: 0}}>
+                    <Line key={`speed-${theme}`} options={speedOptions} data={speedData} />
+                </div>
             </div>
-            <div className="card chart-container">
-                <Line key={`ping-${theme}`} options={pingOptions} data={pingData} />
+            <div className="card chart-container" style={{display: 'flex', flexDirection: 'column'}}>
+                <div style={{marginBottom: '15px'}}>
+                     <h3 style={{margin: 0, fontSize: '1.1rem', color: 'var(--text-color)'}}>Ping</h3>
+                </div>
+                <div style={{flex: 1, minHeight: 0}}>
+                    <Line key={`ping-${theme}`} options={pingOptions} data={pingData} />
+                </div>
             </div>
             </div>
         )}
