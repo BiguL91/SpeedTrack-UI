@@ -290,12 +290,39 @@ button.start-btn:disabled {
   font-size: 0.9rem;
   font-weight: 700;
   transition: color 0.2s;
+  /* Zusätzliche Styles für Buttons */
+  background: var(--metric-bg);
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: 15px;
+  cursor: pointer;
+  /* Sicherstellen, dass Link-Text nicht unterstrichen wird, wenn es ein Button ist */
+  display: inline-flex;
+  align-items: center;
+  gap: 5px; /* Für Icon/Text falls vorhanden */
 }
 
 .export-link:hover {
   color: #764ba2;
   text-decoration: underline;
+  background: rgba(102, 126, 234, 0.1);
+  border-color: #764ba2;
 }
+.export-link:active {
+  transform: translateY(1px);
+}
+
+.export-link.button { /* Falls wir es als Button benutzen */
+  text-decoration: none; /* Keine Unterstreichung bei Buttons */
+}
+
+.button-icon {
+  color: #667eea;
+  margin-left: 5px;
+  font-weight: 800;
+  font-size: 1.1em;
+}
+
 
 /* Custom Range Slider */
 .range-slider {
@@ -448,16 +475,15 @@ button.start-btn:disabled {
 }
 
 .row-metric .icon {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.9rem; /* Standardgröße */
   width: 20px; /* Platzhalter für Icon Ausrichtung */
   text-align: center;
 }
 
-/* Farb-Akzente für die Metriken (optional) */
-.download .icon { color: #2ecc71; } 
-.upload .icon { color: #3498db; }   
-.ping .icon { color: #e67e22; }     
+/* Farb-Akzente für die Metriken */
+.row-metric.download .icon { color: #2ecc71; font-size: 1.1rem; } 
+.row-metric.upload .icon { color: #3498db; font-size: 1.1rem; }   
+.row-metric.ping .icon { color: #e67e22; font-size: 1.1rem; }     
 
 /* Responsive für kleine Bildschirme: Umbruch */
 @media (max-width: 700px) {

@@ -5,10 +5,15 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 const cron = require('node-cron');
+const multer = require('multer');
+const { parse } = require('csv-parse');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Upload Konfiguration
+const upload = multer({ dest: 'uploads/' });
 
 app.use(cors());
 app.use(express.json());
@@ -407,6 +412,83 @@ app.get('/api/export', (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="speedtest_history.csv"');
     res.send(csvContent);
   });
+});
+
+// CSV Import Endpoint
+app.post('/api/import', upload.single('file'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: "Keine Datei hochgeladen." });
+    }
+
+    const results = [];
+    const filePath = req.file.path;
+
+    fs.createReadStream(filePath)
+        .pipe(parse({ columns: true, trim: true }))
+        .on('data', (data) => results.push(data))
+        .on('error', (err) => {
+            console.error("CSV Parse Fehler:", err);
+            res.status(500).json({ error: "Fehler beim Lesen der CSV Datei." });
+            fs.unlinkSync(filePath); // Cleanup
+        })
+        .on('end', () => {
+            // DB Import in Transaktion
+            db.serialize(() => {
+                db.run("BEGIN TRANSACTION;");
+                
+                const stmt = db.prepare(`
+                    INSERT OR REPLACE INTO results (
+                        id, timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, serverId
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `);
+
+                let errorOccurred = false;
+
+                results.forEach(row => {
+                    if (errorOccurred) return;
+
+                    // Mapping CSV Header -> DB Columns
+                    // CSV: ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country,Server ID
+                    const id = row['ID'];
+                    const timestamp = row['Timestamp'];
+                    const ping = parseFloat(row['Ping (ms)']) || 0;
+                    const download = parseFloat(row['Download (Mbps)']) || 0;
+                    const upload = parseFloat(row['Upload (Mbps)']) || 0;
+                    const packetLoss = parseFloat(row['Packet Loss (%)']) || 0;
+                    const isp = row['ISP'];
+                    const server = row['Server']; // Location
+                    const country = row['Server Country'];
+                    const serverId = row['Server ID'] || null;
+
+                    if (id && timestamp) {
+                        stmt.run([id, timestamp, ping, download, upload, packetLoss, isp, server, country, serverId], (err) => {
+                            if (err) {
+                                console.error("Import Insert Error:", err);
+                                errorOccurred = true;
+                            }
+                        });
+                    }
+                });
+
+                stmt.finalize();
+
+                if (errorOccurred) {
+                    db.run("ROLLBACK;");
+                    res.status(500).json({ error: "Fehler beim Importieren der Daten in die Datenbank." });
+                } else {
+                    db.run("COMMIT;", (err) => {
+                        if (err) {
+                            res.status(500).json({ error: "Fehler beim Commit der Transaktion." });
+                        } else {
+                            res.json({ message: `${results.length} Einträge erfolgreich importiert.` });
+                        }
+                    });
+                }
+                
+                // Aufräumen
+                fs.unlinkSync(filePath);
+            });
+        });
 });
 
 app.post('/api/test', (req, res) => {

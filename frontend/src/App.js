@@ -379,6 +379,38 @@ function App() {
       }
   };
 
+  // --- CSV IMPORT ---
+  const fileInputRef = React.useRef(null);
+
+  const handleImportClick = () => {
+      fileInputRef.current.click();
+  };
+
+  const handleFileUpload = async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+          setLoading(true); // Kurzes Laden anzeigen
+          const response = await axios.post('/api/import', formData, {
+              headers: {
+                  'Content-Type': 'multipart/form-data'
+              }
+          });
+          showToast(response.data.message, "success");
+          fetchHistory(); // Refresh
+      } catch (err) {
+          showToast("Import Fehler: " + (err.response?.data?.error || err.message), "error");
+      } finally {
+          setLoading(false);
+          // Reset input damit man die gleiche Datei nochmal wählen kann
+          event.target.value = null; 
+      }
+  };
+
   // Theme Logik
   useEffect(() => {
     const applyTheme = (themeName) => {
@@ -836,19 +868,29 @@ function App() {
                         title="Anzahl ändern"
                     />
                 </div>
-                <div style={{display:'flex', gap: '15px', alignItems: 'center'}}>
-                    <button 
-                        onClick={() => setView('history')}
-                        className="start-btn" 
-                        style={{padding: '8px 20px', fontSize: '0.9rem', background: 'var(--metric-bg)', color: 'var(--text-color)', border: '1px solid var(--border-color)', boxShadow: 'none'}}
-                    >
-                        📜 Historie (Alle)
-                    </button>
-                    <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
-                        CSV Export ⬇
-                    </a>
-                </div>
-            </div>
+                                <div style={{display:'flex', gap: '15px', alignItems: 'center'}}>
+                                    <button
+                                        onClick={() => setView('history')}
+                                        className="export-link"
+                                    >
+                                        📜 Historie (Alle)
+                                    </button>
+                                    <input
+                                        type="file"
+                                        accept=".csv"
+                                        ref={fileInputRef}
+                                        style={{display: 'none'}}
+                                        onChange={handleFileUpload}
+                                    />
+                                                        <button 
+                                                            onClick={handleImportClick}
+                                                            className="export-link"
+                                                        >
+                                                            CSV Import <span className="button-icon">⬆</span>
+                                                        </button>
+                                                        <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
+                                                            CSV Export <span className="button-icon">⬇</span>
+                                                        </a>                                </div>            </div>
             
             <div className="recent-tests-table-header">
                 <div className="header-time">Uhrzeit</div>
@@ -918,9 +960,23 @@ function App() {
                     ⬅ Zurück
                 </button>
                 <h2 style={{margin: 0, border: 'none'}}>Gesamte Historie ({history.length} Einträge)</h2>
-                <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
-                  CSV Export ⬇
-                </a>
+                <div style={{display:'flex', gap: '15px', alignItems: 'center'}}>
+                    <input 
+                        type="file" 
+                        accept=".csv" 
+                        ref={fileInputRef} 
+                        style={{display: 'none'}} 
+                        onChange={handleFileUpload} 
+                    />
+                                        <button 
+                                            onClick={handleImportClick}
+                                            className="export-link"
+                                        >
+                                            CSV Import <span className="button-icon">⬆</span>
+                                        </button>
+                                        <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
+                                            CSV Export <span className="button-icon">⬇</span>
+                                        </a>                </div>
           </div>
 
           <div className="recent-tests-table-header full-history-header">
@@ -989,6 +1045,15 @@ function App() {
       </div>
 
       <h1 onClick={() => setView('dashboard')} style={{cursor: 'pointer'}}>SpeedTest Tracker</h1>
+      
+      {/* Global File Input for Import */}
+      <input 
+        type="file" 
+        accept=".csv" 
+        ref={fileInputRef} 
+        style={{display: 'none'}} 
+        onChange={handleFileUpload} 
+      />
       
       {view === 'dashboard' ? renderDashboard() : renderFullHistory()}
 
