@@ -59,11 +59,23 @@ function createSettingsTable() {
         }
       });
       // Standardwert für retention_period setzen, falls nicht vorhanden (0 = nie löschen)
-      const checkRetentionSql = "SELECT value FROM settings WHERE key = 'retention_period'";
-      db.get(checkRetentionSql, [], (err, row) => {
-        if (!row) {
-          db.run("INSERT INTO settings (key, value) VALUES ('retention_period', ?)", ['0']); // Default: Nie löschen
-        }
+      const settingsDefaults = [
+          { key: 'retention_period', value: '0' },
+          { key: 'expected_download', value: '0' }, // 0 = deaktiviert
+          { key: 'expected_upload', value: '0' },   // 0 = deaktiviert
+          { key: 'tolerance', value: '10' },        // 10%
+          { key: 'retry_count', value: '3' },       // 3 Wiederholungen
+          { key: 'retry_delay', value: '30' },      // 30 Sekunden Pause
+          { key: 'retry_strategy', value: 'AVG' }   // AVG, MIN, MAX
+      ];
+
+      settingsDefaults.forEach(setting => {
+          const checkSql = "SELECT value FROM settings WHERE key = ?";
+          db.get(checkSql, [setting.key], (err, row) => {
+              if (!row) {
+                  db.run("INSERT INTO settings (key, value) VALUES (?, ?)", [setting.key, setting.value]);
+              }
+          });
       });
     }
   });
@@ -83,7 +95,9 @@ function upgradeDatabase() {
         { name: 'resultUrl', type: 'TEXT' },
         { name: 'downloadBytes', type: 'INTEGER' },
         { name: 'uploadBytes', type: 'INTEGER' },
-        { name: 'isManual', type: 'INTEGER' } // 0 = Auto, 1 = Manuell
+        { name: 'isManual', type: 'INTEGER' }, // 0 = Auto, 1 = Manuell
+        { name: 'groupId', type: 'TEXT' },     // UUID für zusammengehörige Tests
+        { name: 'isAggregate', type: 'INTEGER' } // 1 = Berechneter Durchschnittswert
     ];
 
     columnsToAdd.forEach(col => {
@@ -149,75 +163,390 @@ cron.schedule('0 0 * * *', () => {
     cleanupDatabase();
 });
 
-// --- Automatischer Hintergrund-Test ---
-function runScheduledTest() {
+// --- Helper Funktionen für Test-Logik ---
+
+
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+
+
+const runSpeedtestPromise = () => {
+
+    return new Promise((resolve, reject) => {
+
+        exec('speedtest --format=json --accept-license --accept-gdpr', (error, stdout, stderr) => {
+
+            if (error) {
+
+                return reject(error);
+
+            }
+
+            try {
+
+                const result = JSON.parse(stdout);
+
+                resolve(result);
+
+            } catch (parseError) {
+
+                reject(parseError);
+
+            }
+
+        });
+
+    });
+
+};
+
+
+
+const saveResultPromise = (result, options = {}) => {
+
+    return new Promise((resolve, reject) => {
+
+        const downloadMbps = (result.download.bandwidth * 8) / 1000000;
+
+        const uploadMbps = (result.upload.bandwidth * 8) / 1000000;
+
+        const pingMs = result.ping.latency;
+
+        const jitter = result.ping.jitter || 0;
+
+        const packetLoss = result.packetLoss || 0;
+
+        const isp = result.isp;
+
+        const serverLocation = `${result.server.name} - ${result.server.location}`;
+
+        const serverCountry = result.server.country;
+
+        const serverId = result.server.id;
+
+        const serverHost = result.server.host;
+
+        const serverPort = result.server.port;
+
+        const serverIp = result.server.ip;
+
+        
+
+        const downloadElapsed = result.download.elapsed;
+
+        const uploadElapsed = result.upload.elapsed;
+
+        const isVpn = result.interface.isVpn ? 1 : 0;
+
+        const externalIp = result.interface.externalIp || null;
+
+        const resultUrl = result.result.url || null;
+
+        
+
+        const downloadBytes = result.download.bytes || 0;
+
+        const uploadBytes = result.upload.bytes || 0;
+
+        
+
+        const isManual = 0; // Automatisch
+
+        const timestamp = options.timestamp || new Date().toISOString();
+
+        const groupId = options.groupId || null;
+
+        const isAggregate = options.isAggregate ? 1 : 0;
+
+
+
+        // Überschreibe Werte falls es ein Aggregat ist (berechnete Werte)
+
+        const finalDownload = options.overrideDownload !== undefined ? options.overrideDownload : downloadMbps;
+
+        const finalUpload = options.overrideUpload !== undefined ? options.overrideUpload : uploadMbps;
+
+        const finalPing = options.overridePing !== undefined ? options.overridePing : pingMs;
+
+
+
+        const insertSql = `
+
+            INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, jitter, serverId, serverHost, serverPort, serverIp, downloadElapsed, uploadElapsed, isVpn, externalIp, resultUrl, downloadBytes, uploadBytes, isManual, groupId, isAggregate)
+
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+
+        `;
+
+        
+
+        const params = [
+
+            timestamp, finalPing, finalDownload, finalUpload, packetLoss, isp, serverLocation, serverCountry, jitter, serverId, serverHost, serverPort, serverIp, downloadElapsed, uploadElapsed, isVpn, externalIp, resultUrl, downloadBytes, uploadBytes, isManual, groupId, isAggregate
+
+        ];
+
+
+
+        db.run(insertSql, params, function(err) {
+
+            if (err) reject(err);
+
+            else resolve(this.lastID);
+
+        });
+
+    });
+
+};
+
+
+
+// --- Automatischer Hintergrund-Test (Erweitert) ---
+
+async function runScheduledTest() {
+
   if (isTestRunning) {
+
     console.log(`[${new Date().toISOString()}] Geplanter Test übersprungen: Ein anderer Test läuft bereits.`);
+
     return;
+
   }
 
+
+
   isTestRunning = true;
+
   console.log(`[${new Date().toISOString()}] Starte geplanten Speedtest...`);
-  
-  exec('speedtest --format=json --accept-license --accept-gdpr', (error, stdout, stderr) => {
-    // Flag immer zurücksetzen, egal was passiert
-    isTestRunning = false;
 
-    if (error) {
-      console.error(`Geplanter Test fehlgeschlagen: ${error}`);
-      return;
-    }
 
-    try {
-      const result = JSON.parse(stdout);
-      
-      const downloadMbps = (result.download.bandwidth * 8) / 1000000;
-      const uploadMbps = (result.upload.bandwidth * 8) / 1000000;
-      const pingMs = result.ping.latency;
-      const jitter = result.ping.jitter || 0;
-      const packetLoss = result.packetLoss || 0;
-      const isp = result.isp;
-      // Kombiniere Provider und Ort für bessere Lesbarkeit (z.B. "Vodafone - Frankfurt")
-      const serverLocation = `${result.server.name} - ${result.server.location}`;
-      const serverCountry = result.server.country;
-      const serverId = result.server.id;
-      const serverHost = result.server.host;
-      const serverPort = result.server.port;
-      const serverIp = result.server.ip;
-      
-      const downloadElapsed = result.download.elapsed;
-      const uploadElapsed = result.upload.elapsed;
-      const isVpn = result.interface.isVpn ? 1 : 0;
-      const externalIp = result.interface.externalIp || null;
-      const resultUrl = result.result.url || null;
-      
-      const downloadBytes = result.download.bytes || 0;
-      const uploadBytes = result.upload.bytes || 0;
-      
-      const isManual = 0; // Automatisch
-      
-      const timestamp = new Date().toISOString();
 
-      const insertSql = `
-        INSERT INTO results (timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, jitter, serverId, serverHost, serverPort, serverIp, downloadElapsed, uploadElapsed, isVpn, externalIp, resultUrl, downloadBytes, uploadBytes, isManual)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-      
-      const params = [timestamp, pingMs, downloadMbps, uploadMbps, packetLoss, isp, serverLocation, serverCountry, jitter, serverId, serverHost, serverPort, serverIp, downloadElapsed, uploadElapsed, isVpn, externalIp, resultUrl, downloadBytes, uploadBytes, isManual];
+  try {
 
-      db.run(insertSql, params, (err) => {
-        if (err) {
-            console.error('Fehler beim Speichern des geplanten Tests:', err.message);
-        } else {
-            console.log(`[${timestamp}] Geplanter Test erfolgreich gespeichert.`);
+      // 1. Settings laden
 
-        }
+      const settings = await new Promise((resolve, reject) => {
+
+          db.all("SELECT * FROM settings", [], (err, rows) => {
+
+              if (err) reject(err);
+
+              else {
+
+                  const s = {};
+
+                  rows.forEach(row => s[row.key] = row.value);
+
+                  resolve(s);
+
+              }
+
+          });
+
       });
 
-    } catch (parseError) {
-      console.error('Fehler beim Parsen des JSON Outputs:', parseError);
-    }
-  });
+
+
+      const expDown = parseFloat(settings.expected_download || 0);
+
+      const expUp = parseFloat(settings.expected_upload || 0);
+
+      const tolerance = parseFloat(settings.tolerance || 10);
+
+      const retryCount = parseInt(settings.retry_count || 3);
+
+      const retryDelay = parseInt(settings.retry_delay || 30);
+
+      const retryStrategy = settings.retry_strategy || 'AVG';
+
+
+
+      // 2. Ersten Test ausführen
+
+      let attempt1;
+
+      try {
+
+          attempt1 = await runSpeedtestPromise();
+
+      } catch (e) {
+
+          console.error("Erster Test fehlgeschlagen:", e);
+
+          isTestRunning = false;
+
+          return;
+
+      }
+
+
+
+      const downMbps = (attempt1.download.bandwidth * 8) / 1000000;
+
+      const upMbps = (attempt1.upload.bandwidth * 8) / 1000000;
+
+
+
+      // 3. Prüfen ob Retry nötig
+
+      let needsRetry = false;
+
+      if (expDown > 0 && downMbps < (expDown * (1 - tolerance / 100))) needsRetry = true;
+
+      if (expUp > 0 && upMbps < (expUp * (1 - tolerance / 100))) needsRetry = true;
+
+
+
+      if (!needsRetry) {
+
+          // Alles OK -> Normal speichern
+
+          await saveResultPromise(attempt1);
+
+          console.log(`[${new Date().toISOString()}] Test erfolgreich (kein Retry nötig).`);
+
+      } else {
+
+          // RETRY LOGIK
+
+          console.log(`[${new Date().toISOString()}] Werte außerhalb der Toleranz. Starte ${retryCount} Wiederholungen...`);
+
+          
+
+          const groupId = require('crypto').randomUUID(); // Node 14.17+ hat crypto.randomUUID
+
+          
+
+          // Speichere Versuch 1 (markiert als Teil der Gruppe)
+
+          await saveResultPromise(attempt1, { groupId });
+
+
+
+          const allResults = [attempt1];
+
+
+
+          for (let i = 0; i < retryCount; i++) {
+
+              console.log(`Warte ${retryDelay}s vor Retry ${i+1}...`);
+
+              await sleep(retryDelay * 1000);
+
+              
+
+              try {
+
+                  console.log(`Starte Retry ${i+1}/${retryCount}...`);
+
+                  const retryResult = await runSpeedtestPromise();
+
+                  await saveResultPromise(retryResult, { groupId });
+
+                  allResults.push(retryResult);
+
+              } catch (e) {
+
+                  console.error(`Retry ${i+1} fehlgeschlagen:`, e);
+
+              }
+
+          }
+
+
+
+          // Aggregat berechnen
+
+          const downloads = allResults.map(r => (r.download.bandwidth * 8) / 1000000);
+
+          const uploads = allResults.map(r => (r.upload.bandwidth * 8) / 1000000);
+
+          const pings = allResults.map(r => r.ping.latency);
+
+
+
+          let finalDown, finalUp, finalPing;
+
+
+
+          if (retryStrategy === 'MIN') {
+
+              finalDown = Math.min(...downloads);
+
+              finalUp = Math.min(...uploads);
+
+              finalPing = Math.max(...pings); // Bei Ping ist Max = Worst Case? Oder Min? "MIN" Strategie heißt meist "Worst Case Performance" -> also niedriger Speed, hoher Ping.
+
+                                              // Warte, Strategie "MIN" bei Speedtest heißt meist "Minimum Speed".
+
+                                              // Bei Ping ist "Minimum" gut.
+
+                                              // Wir nehmen einfach stur MIN/MAX der Zahlenwerte.
+
+              finalPing = Math.min(...pings);
+
+          } else if (retryStrategy === 'MAX') {
+
+              finalDown = Math.max(...downloads);
+
+              finalUp = Math.max(...uploads);
+
+              finalPing = Math.max(...pings);
+
+          } else {
+
+              // AVG
+
+              finalDown = downloads.reduce((a,b)=>a+b,0) / downloads.length;
+
+              finalUp = uploads.reduce((a,b)=>a+b,0) / uploads.length;
+
+              finalPing = pings.reduce((a,b)=>a+b,0) / pings.length;
+
+          }
+
+
+
+          // Aggregat speichern
+
+          // Wir nehmen die Metadaten (Server, ISP etc.) vom allerersten Test als Referenz
+
+          await saveResultPromise(attempt1, { 
+
+              groupId, 
+
+              isAggregate: true,
+
+              overrideDownload: finalDown,
+
+              overrideUpload: finalUp,
+
+              overridePing: finalPing,
+
+              timestamp: new Date().toISOString() // Neuer Zeitstempel für das Aggregat
+
+          });
+
+          
+
+          console.log(`[${new Date().toISOString()}] Wiederholungen abgeschlossen. Aggregat (${retryStrategy}) gespeichert.`);
+
+      }
+
+
+
+  } catch (err) {
+
+      console.error("Fehler im Scheduled Test Ablauf:", err);
+
+  } finally {
+
+      isTestRunning = false;
+
+  }
+
 }
 
 // Cronjob Logik
@@ -252,48 +581,66 @@ setTimeout(() => {
 
 // API Routen
 app.get('/api/settings', (req, res) => {
-    // Holen beider Einstellungen
-    db.get("SELECT value FROM settings WHERE key = 'cron_schedule'", [], (err, cronRow) => {
+    db.all("SELECT * FROM settings", [], (err, rows) => {
         if (err) {
             res.status(500).json({ error: err.message });
             return;
         }
-        db.get("SELECT value FROM settings WHERE key = 'retention_period'", [], (err, retentionRow) => {
-            if (err) {
-                res.status(500).json({ error: err.message });
-                return;
-            }
-            res.json({ 
-                cron_schedule: cronRow ? cronRow.value : '0 * * * *',
-                retention_period: retentionRow ? retentionRow.value : '0'
-            });
+        
+        const settings = {
+            cron_schedule: '0 * * * *',
+            retention_period: '0',
+            expected_download: '0',
+            expected_upload: '0',
+            tolerance: '10',
+            retry_count: '3',
+            retry_delay: '30',
+            retry_strategy: 'AVG'
+        };
+
+        rows.forEach(row => {
+            settings[row.key] = row.value;
         });
+
+        res.json(settings);
     });
 });
 
 app.post('/api/settings', (req, res) => {
-    const { cron_schedule, retention_period } = req.body;
+    const { 
+        cron_schedule, retention_period, 
+        expected_download, expected_upload, tolerance, retry_count, retry_delay, retry_strategy 
+    } = req.body;
+    
     let updates = [];
     let params = [];
 
-    // Cron Schedule verarbeiten
-    if (cron_schedule !== undefined) {
-        if (!cron.validate(cron_schedule)) {
-            return res.status(400).json({ error: "Ungültiges Cron-Format" });
+    // Helper
+    const addUpdate = (key, value) => {
+        if (value !== undefined) {
+            updates.push("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)");
+            params.push(key);
+            params.push(String(value));
         }
-        updates.push("INSERT OR REPLACE INTO settings (key, value) VALUES ('cron_schedule', ?)");
-        params.push(cron_schedule);
+    };
+
+    // Validierung & Sammlung
+    if (cron_schedule !== undefined) {
+        if (!cron.validate(cron_schedule)) return res.status(400).json({ error: "Ungültiges Cron-Format" });
+        addUpdate('cron_schedule', cron_schedule);
+    }
+    
+    if (retention_period !== undefined) {
+        if (isNaN(parseInt(retention_period)) || parseInt(retention_period) < 0) return res.status(400).json({ error: "Ungültige Aufbewahrungsdauer" });
+        addUpdate('retention_period', retention_period);
     }
 
-    // Retention Period verarbeiten
-    if (retention_period !== undefined) {
-        const parsedRetention = parseInt(retention_period);
-        if (isNaN(parsedRetention) || parsedRetention < 0) {
-            return res.status(400).json({ error: "Ungültige Aufbewahrungsdauer" });
-        }
-        updates.push("INSERT OR REPLACE INTO settings (key, value) VALUES ('retention_period', ?)");
-        params.push(parsedRetention.toString());
-    }
+    if (expected_download !== undefined) addUpdate('expected_download', expected_download);
+    if (expected_upload !== undefined) addUpdate('expected_upload', expected_upload);
+    if (tolerance !== undefined) addUpdate('tolerance', tolerance);
+    if (retry_count !== undefined) addUpdate('retry_count', retry_count);
+    if (retry_delay !== undefined) addUpdate('retry_delay', retry_delay);
+    if (retry_strategy !== undefined) addUpdate('retry_strategy', retry_strategy);
 
     if (updates.length === 0) {
         return res.status(400).json({ error: "Keine Einstellungen zum Speichern bereitgestellt." });
@@ -302,29 +649,44 @@ app.post('/api/settings', (req, res) => {
     // Transaktion für atomare Updates
     db.serialize(() => {
         db.run("BEGIN TRANSACTION;");
+        
+        const stmt = db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)");
+        
+        // Da stmt.run asynchron ist innerhalb serialize, müssen wir aufpassen.
+        // Besser: Loop mit Callbacks oder Promise-Chain. Da SQLite in Node async ist, ist serialize hier nur für die Order.
+        // Einfacher: Wir führen die Statements nacheinander aus.
+        
+        let errorOccurred = false;
+        
+        // Wir bauen ein rekursives Update oder nutzen Promise.all wenn wir einen Wrapper hätten.
+        // Hier einfache Lösung:
+        
         updates.forEach((sql, index) => {
-            db.run(sql, [params[index]], (err) => {
-                if (err) {
-                    db.run("ROLLBACK;");
-                    res.status(500).json({ error: err.message });
-                    return;
-                }
-            });
+             // sql ist hier immer gleich, wir nutzen stmt
+             // params ist flach [k1, v1, k2, v2]
+             const k = params[index * 2];
+             const v = params[index * 2 + 1];
+             stmt.run([k, v], (err) => {
+                 if (err) errorOccurred = true;
+             });
         });
-        db.run("COMMIT;", (commitErr) => {
-            if (commitErr) {
-                res.status(500).json({ error: commitErr.message });
-            } else {
-                // Cronjob zur Laufzeit aktualisieren, falls cron_schedule geändert wurde
-                if (cron_schedule !== undefined) {
-                    startCronJob(cron_schedule);
-                }
-                // Cleanup einmal ausführen nach Änderung der Aufbewahrungsdauer
-                if (retention_period !== undefined && parseInt(retention_period) > 0) {
-                    cleanupDatabase();
-                }
 
-                res.json({ message: "Einstellungen gespeichert", cron_schedule, retention_period });
+        stmt.finalize(() => {
+            if (errorOccurred) {
+                db.run("ROLLBACK;");
+                res.status(500).json({ error: "DB Fehler beim Speichern" });
+            } else {
+                db.run("COMMIT;", (commitErr) => {
+                    if (commitErr) {
+                        res.status(500).json({ error: commitErr.message });
+                    } else {
+                        // Side Effects
+                        if (cron_schedule !== undefined) startCronJob(cron_schedule);
+                        if (retention_period !== undefined && parseInt(retention_period) > 0) cleanupDatabase();
+
+                        res.json({ message: "Einstellungen gespeichert" });
+                    }
+                });
             }
         });
     });
@@ -332,7 +694,15 @@ app.post('/api/settings', (req, res) => {
 
 app.get('/api/history', (req, res) => {
   const limit = req.query.limit ? parseInt(req.query.limit) : null;
-  let sql = 'SELECT * FROM results ORDER BY timestamp DESC';
+  
+  // Filter: Zeige Aggregate, Manuelle Tests oder Tests ohne Gruppe (normale Einzeltests)
+  // Verstecke die Einzelversuche einer Retry-Serie (die haben groupId aber isAggregate=0)
+  let sql = `
+    SELECT * FROM results 
+    WHERE (isAggregate = 1 OR groupId IS NULL OR isManual = 1)
+    ORDER BY timestamp DESC
+  `;
+  
   let params = [];
 
   if (limit) {

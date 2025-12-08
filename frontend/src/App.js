@@ -64,6 +64,14 @@ function App() {
   // Einstellung für Datenvorhaltung (in Tagen, 0 = nie löschen)
   const [retentionPeriod, setRetentionPeriod] = useState('0');
   
+  // QS / Retry Settings
+  const [expectedDownload, setExpectedDownload] = useState('0');
+  const [expectedUpload, setExpectedUpload] = useState('0');
+  const [tolerance, setTolerance] = useState('10');
+  const [retryCount, setRetryCount] = useState('3');
+  const [retryDelay, setRetryDelay] = useState('30');
+  const [retryStrategy, setRetryStrategy] = useState('AVG');
+
   // Confirm Flow State: null -> 'backup' -> 'delete'
   const [confirmStep, setConfirmStep] = useState(null);
 
@@ -322,10 +330,16 @@ function App() {
     try {
         const response = await axios.get('/api/settings');
         const loadedCron = response.data.cron_schedule;
-        const loadedRetention = response.data.retention_period;
         setCronSchedule(loadedCron);
         parseCronToState(loadedCron); 
-        setRetentionPeriod(loadedRetention);
+        setRetentionPeriod(response.data.retention_period);
+        
+        setExpectedDownload(response.data.expected_download);
+        setExpectedUpload(response.data.expected_upload);
+        setTolerance(response.data.tolerance);
+        setRetryCount(response.data.retry_count);
+        setRetryDelay(response.data.retry_delay);
+        setRetryStrategy(response.data.retry_strategy);
     } catch (err) {
         console.error("Fehler beim Laden der Einstellungen", err);
     }
@@ -335,14 +349,22 @@ function App() {
   const saveSettings = async () => {
     try {
         const newCron = generateCron(intervalBase, startTime);
-        const newRetention = retentionPeriod; // Wert direkt aus dem State nehmen
+        const newRetention = retentionPeriod; 
+        
         await axios.post('/api/settings', { 
             cron_schedule: newCron,
-            retention_period: newRetention
+            retention_period: newRetention,
+            expected_download: expectedDownload,
+            expected_upload: expectedUpload,
+            tolerance: tolerance,
+            retry_count: retryCount,
+            retry_delay: retryDelay,
+            retry_strategy: retryStrategy
         });
         
         setCronSchedule(newCron);
         setRetentionPeriod(newRetention);
+        // Andere States sind schon gesetzt durch Input
         setShowSettings(false);
         showToast("Einstellungen erfolgreich gespeichert! ✅", "success");
     } catch (err) {
@@ -1234,7 +1256,89 @@ function App() {
                         </p>
                     </div>
                     
-                    <div className="form-group" style={{marginTop: '20px'}}>
+                    <div className="form-group" style={{marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '20px'}}>
+                        <h3 style={{fontSize: '1rem', marginBottom: '15px'}}>Qualitätssicherung & Wiederholung</h3>
+                        
+                        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                            <div>
+                                <label>Erwarteter Download (Mbps):</label>
+                                <input 
+                                    type="number" 
+                                    min="0"
+                                    value={expectedDownload}
+                                    onChange={(e) => setExpectedDownload(e.target.value)}
+                                    style={{width: '100%', padding: '10px', marginTop: '5px'}}
+                                    placeholder="0 = Deaktiviert"
+                                />
+                            </div>
+                            <div>
+                                <label>Erwarteter Upload (Mbps):</label>
+                                <input 
+                                    type="number" 
+                                    min="0"
+                                    value={expectedUpload}
+                                    onChange={(e) => setExpectedUpload(e.target.value)}
+                                    style={{width: '100%', padding: '10px', marginTop: '5px'}}
+                                    placeholder="0 = Deaktiviert"
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{marginTop: '15px'}}>
+                            <label>Toleranz (%):</label>
+                            <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '5px'}}>
+                                Abweichung, ab der wiederholt wird (z.B. 10%).
+                            </div>
+                            <input 
+                                type="number" 
+                                min="0"
+                                max="100"
+                                value={tolerance}
+                                onChange={(e) => setTolerance(e.target.value)}
+                                style={{width: '100%', padding: '10px'}}
+                            />
+                        </div>
+
+                        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px'}}>
+                            <div>
+                                <label>Wiederholungen:</label>
+                                <input 
+                                    type="number" 
+                                    min="1"
+                                    max="10"
+                                    value={retryCount}
+                                    onChange={(e) => setRetryCount(e.target.value)}
+                                    style={{width: '100%', padding: '10px', marginTop: '5px'}}
+                                />
+                            </div>
+                            <div>
+                                <label>Pause (Sekunden):</label>
+                                <input 
+                                    type="number" 
+                                    min="0"
+                                    max="300"
+                                    value={retryDelay}
+                                    onChange={(e) => setRetryDelay(e.target.value)}
+                                    style={{width: '100%', padding: '10px', marginTop: '5px'}}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{marginTop: '15px'}}>
+                                <label>Strategie:</label>
+                                <select 
+                                    value={retryStrategy} 
+                                    onChange={(e) => setRetryStrategy(e.target.value)}
+                                    style={{width: '100%', padding: '10px', marginTop: '5px'}}
+                                >
+                                    <option value="AVG">Durchschnitt</option>
+                                    <option value="MIN">Minimum (Worst Case)</option>
+                                    <option value="MAX">Maximum (Best Case)</option>
+                                </select>
+                        </div>
+                    </div>
+
+                    <div className="form-group" style={{marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '20px'}}>
                         <label>Daten aufbewahren für (Tage):</label>
                         <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '5px'}}>
                         Alte Tests werden automatisch gelöscht. 0 = Nie löschen.
