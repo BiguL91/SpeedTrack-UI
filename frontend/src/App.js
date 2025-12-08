@@ -736,7 +736,7 @@ function App() {
     },
   };
 
-  const displayData = loading ? currentTestValues : lastResult;
+  const displayData = loading ? currentTestValues : (lastResult || { download: 0, upload: 0, ping: 0 });
   const resultCardTitle = loading ? 'Live Test läuft...' : 'Letztes Ergebnis';
 
   // --- RENDER HELPERS ---
@@ -750,8 +750,7 @@ function App() {
         </div>
 
         {/* HAUPTBEREICH: Combined Metrics */}
-        {displayData && (
-            <div className="card card-main">
+        <div className="card card-main">
             <h2>{resultCardTitle}</h2>
             
             {loading && (
@@ -809,12 +808,10 @@ function App() {
                     </div>
                 )}
                 </div>
-            </div>
-            </div>
-        )}
-        
-        {/* CHARTS CONTROLS */}
-        {history.length > 0 && (
+                        </div>
+                    </div>
+                    
+                    {/* CHARTS CONTROLS */}        {history.length > 0 && (
             <div style={{display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px'}}>
                 <span style={{fontWeight: '600', color: 'var(--text-secondary)', alignSelf: 'center'}}>Chart-Ansicht:</span>
                 {[5, 10, 20, 50].map(limit => (
@@ -852,92 +849,189 @@ function App() {
             </div>
         )}
 
-        {/* LIST CARD (SMALLER) */}
-        {history.length > 0 && (
-            <div className="card">
-            <div className="list-header-row">
-                <div className="list-header-left">
-                    <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte {visibleCount} Tests</h2>
-                    <input 
-                        type="range" 
-                        min="3" 
-                        max="50" 
-                        value={visibleCount} 
-                        onChange={(e) => setVisibleCount(Number(e.target.value))}
-                        className="range-slider"
-                        title="Anzahl ändern"
-                    />
+                {/* LIST CARD (SMALLER) */}
+
+                <div className="card">
+
+                    <div className="list-header-row">
+
+                        <div className="list-header-left">
+
+                            <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte {visibleCount} Tests</h2>
+
+                            <input 
+
+                                type="range" 
+
+                                min="3" 
+
+                                max="50" 
+
+                                value={visibleCount} 
+
+                                onChange={(e) => setVisibleCount(Number(e.target.value))}
+
+                                className="range-slider"
+
+                                title="Anzahl ändern"
+
+                            />
+
+                        </div>
+
+                        <div style={{display:'flex', gap: '15px', alignItems: 'center'}}>
+
+                            <button 
+
+                                onClick={() => setView('history')}
+
+                                className="export-link" 
+
+                            >
+
+                                📜 Historie (Alle)
+
+                            </button>
+
+                            <input 
+
+                                type="file" 
+
+                                accept=".csv" 
+
+                                ref={fileInputRef} 
+
+                                style={{display: 'none'}} 
+
+                                onChange={handleFileUpload} 
+
+                            />
+
+                            <button 
+
+                                onClick={handleImportClick}
+
+                                className="export-link"
+
+                            >
+
+                                CSV Import <span className="icon-import">⬆</span>
+
+                            </button>
+
+                            <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
+
+                                CSV Export <span className="icon-export">⬇</span>
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                    
+
+                    <div className="recent-tests-table-header">
+
+                        <div className="header-time">Uhrzeit</div>
+
+                        <div className="header-server">Server</div>
+
+                        <div className="header-download">Download</div>
+
+                        <div className="header-upload">Upload</div>
+
+                        <div className="header-ping">Ping</div>
+
+                    </div>
+
+        
+
+                    {history.length > 0 ? (
+
+                        <ul className="recent-tests-list"> 
+
+                            {history.slice(0, visibleCount).map((test, index) => (
+
+                            <li 
+
+                                key={test.id} 
+
+                                className={`recent-tests-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
+
+                                onClick={() => setSelectedTest(test)} 
+
+                                style={{cursor: 'pointer'}}
+
+                            >
+
+                                <div className="row-time">
+
+                                <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+
+                                    {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+
+                                    <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help'}}>
+
+                                        {test.isManual ? '👤' : '🤖'}
+
+                                    </span>
+
+                                </div>
+
+                                <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
+
+                                </div>
+
+                                
+
+                                <div className="row-server" title={test.serverLocation}>
+
+                                {formatServerDisplay(test)}
+
+                                </div>
+
+        
+
+                                <div className="row-metric download">
+
+                                <span className="icon">⬇</span> {test.download.toFixed(0)} <small>MBit/s</small>
+
+                                </div>
+
+                                
+
+                                <div className="row-metric upload">
+
+                                <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>MBit/s</small>
+
+                                </div>
+
+                                
+
+                                <div className="row-metric ping">
+
+                                <span className="icon">⚡</span> {test.ping.toFixed(0)} <small>ms</small>
+
+                                </div>
+
+                            </li>
+
+                            ))}
+
+                        </ul>
+
+                    ) : (
+
+                        <div style={{padding: '20px', textAlign: 'center', color: 'var(--text-secondary)'}}>
+
+                            Keine Testergebnisse vorhanden. Starte einen Test oder importiere Daten.
+
+                        </div>
+
+                    )}
+
                 </div>
-                                <div style={{display:'flex', gap: '15px', alignItems: 'center'}}>
-                                    <button
-                                        onClick={() => setView('history')}
-                                        className="export-link"
-                                    >
-                                        📜 Historie (Alle)
-                                    </button>
-                                    <input
-                                        type="file"
-                                        accept=".csv"
-                                        ref={fileInputRef}
-                                        style={{display: 'none'}}
-                                        onChange={handleFileUpload}
-                                    />
-                                                                            <button 
-                                                                                onClick={handleImportClick}
-                                                                                className="export-link"
-                                                                            >
-                                                                                CSV Import <span className="icon-import">⬆</span>
-                                                                            </button>
-                                                                            <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
-                                                                                CSV Export <span className="icon-export">⬇</span>
-                                                                            </a>                                </div>            </div>
-            
-            <div className="recent-tests-table-header">
-                <div className="header-time">Uhrzeit</div>
-                <div className="header-server">Server</div>
-                <div className="header-download">Download</div>
-                <div className="header-upload">Upload</div>
-                <div className="header-ping">Ping</div>
-            </div>
-
-            <ul className="recent-tests-list"> 
-                {history.slice(0, visibleCount).map((test, index) => (
-                <li 
-                    key={test.id} 
-                    className={`recent-tests-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
-                    onClick={() => setSelectedTest(test)} 
-                    style={{cursor: 'pointer'}}
-                >
-                    <div className="row-time">
-                    <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
-                        {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                        <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help'}}>
-                            {test.isManual ? '👤' : '🤖'}
-                        </span>
-                    </div>
-                    <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
-                    </div>
-                    
-                    <div className="row-server" title={test.serverLocation}>
-                    {formatServerDisplay(test)}
-                    </div>
-
-                    <div className="row-metric download">
-                    <span className="icon">⬇</span> {test.download.toFixed(0)} <small>MBit/s</small>
-                    </div>
-                    
-                    <div className="row-metric upload">
-                    <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>MBit/s</small>
-                    </div>
-                    
-                    <div className="row-metric ping">
-                    <span className="icon">⚡</span> {test.ping.toFixed(0)} <small>ms</small>
-                    </div>
-                </li>
-                ))}
-            </ul>
-            </div>
-        )}
       </>
   );
 
