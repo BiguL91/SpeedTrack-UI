@@ -74,6 +74,9 @@ function App() {
 
   // Confirm Flow State: null -> 'backup' -> 'delete'
   const [confirmStep, setConfirmStep] = useState(null);
+  
+  // State für aufgeklappte Gruppe (ID)
+  const [expandedGroupId, setExpandedGroupId] = useState(null);
 
   // Toast Notification State
   const [notification, setNotification] = useState(null); // { message: '', type: 'success' | 'error' }
@@ -398,6 +401,14 @@ function App() {
           setShowSettings(false); // Modal schließen
       } catch (err) {
           showToast("Fehler beim Leeren der DB: " + (err.response?.data?.error || err.message), "error");
+      }
+  };
+
+  const toggleExpand = (groupId) => {
+      if (expandedGroupId === groupId) {
+          setExpandedGroupId(null);
+      } else {
+          setExpandedGroupId(groupId);
       }
   };
 
@@ -966,97 +977,555 @@ function App() {
 
                     
 
-                    <div className="recent-tests-table-header">
+                                                    <div className="recent-tests-table-header">
 
-                        <div className="header-time">Uhrzeit</div>
+                    
 
-                        <div className="header-server">Server</div>
+                                                        <div className="header-id" style={{width: '60px', textAlign: 'left'}}>ID</div>
 
-                        <div className="header-download">Download</div>
+                    
 
-                        <div className="header-upload">Upload</div>
+                                                        <div className="header-time">Uhrzeit</div>
 
-                        <div className="header-ping">Ping</div>
+                    
 
-                    </div>
+                                                        <div className="header-server">Server</div>
+
+                    
+
+                                                        <div className="header-download">Download</div>
+
+                    
+
+                                                        <div className="header-upload">Upload</div>
+
+                    
+
+                                                        <div className="header-ping">Ping</div>
+
+                    
+
+                                                    </div>
+
+                    
+
+                                        
+
+                    
+
+                                                    {history.length > 0 ? (
+
+                    
+
+                                                        <ul className="recent-tests-list"> 
+
+                    
+
+                                                            {history
+
+                    
+
+                                                                .filter(test => test.isAggregate === 1 || !test.groupId || test.isManual === 1)
+
+                    
+
+                                                                .slice(0, visibleCount)
+
+                    
+
+                                                                .map((test, index) => {
+
+                    
+
+                                                                    const isGroup = test.isAggregate === 1;
+
+                    
+
+                                                                    const isExpanded = isGroup && expandedGroupId === test.groupId;
+
+                    
+
+                                                                    const details = isGroup ? history.filter(d => d.groupId === test.groupId && d.isAggregate === 0) : [];
+
+                    
+
+                                        
+
+                    
+
+                                                                    return (
+
+                    
+
+                                                                    <React.Fragment key={test.id}>
+
+                    
+
+                                                                        <li 
+
+                    
+
+                                                                            className={`recent-tests-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
+
+                    
+
+                                                                            onClick={() => isGroup ? toggleExpand(test.groupId) : setSelectedTest(test)} 
+
+                    
+
+                                                                            style={{cursor: 'pointer', borderLeft: isGroup ? '4px solid #9b59b6' : undefined}}
+
+                    
+
+                                                                        >
+
+                    
+
+                                                                            <div className="row-id" style={{width: '60px', fontWeight: 'bold', color: 'var(--text-color)'}}>
+
+                    
+
+                                                                                {isGroup && <span style={{marginRight: '5px', fontSize: '0.8rem'}}>{isExpanded ? '▼' : '▶'}</span>}
+
+                    
+
+                                                                                {test.id}
+
+                    
+
+                                                                            </div>
+
+                    
+
+                                                                            <div className="row-time">
+
+                    
+
+                                                                            <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+
+                    
+
+                                                                                {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+
+                    
+
+                                                                                
+
+                    
+
+                                                                                <div style={{display: 'flex', flexDirection: 'column', gap: '2px', marginLeft: '5px'}}>
+
+                    
+
+                                                                                    <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help', lineHeight: 1}}>
+
+                    
+
+                                                                                        {test.isManual ? '👤' : '🤖'}
+
+                    
+
+                                                                                    </span>
+
+                    
+
+                                                                                    {isGroup && <span title="Durchschnittswert" style={{fontSize: '0.8rem', lineHeight: 1}}>📦</span>}
+
+                    
+
+                                                                                </div>
+
+                    
+
+                                                                            </div>
+
+                    
+
+                                                                            <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
+
+                    
+
+                                                                            </div>
 
         
 
-                    {history.length > 0 ? (
-
-                        <ul className="recent-tests-list"> 
-
-                            {history.slice(0, visibleCount).map((test, index) => (
-
-                            <li 
-
-                                key={test.id} 
-
-                                className={`recent-tests-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
-
-                                onClick={() => setSelectedTest(test)} 
-
-                                style={{cursor: 'pointer'}}
-
-                            >
-
-                                <div className="row-time">
-
-                                <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
-
-                                    {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-
-                                    <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help'}}>
-
-                                        {test.isManual ? '👤' : '🤖'}
-
-                                    </span>
-
-                                </div>
-
-                                <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
-
-                                </div>
-
-                                
-
-                                <div className="row-server" title={test.serverLocation}>
-
-                                {formatServerDisplay(test)}
-
-                                </div>
+                                                        
 
         
 
-                                <div className="row-metric download">
+                                                        <div className="row-server" title={test.serverLocation}>
 
-                                <span className="icon">⬇</span> {test.download.toFixed(0)} <small>MBit/s</small>
+        
 
-                                </div>
+                                                        {formatServerDisplay(test)}
 
-                                
+        
 
-                                <div className="row-metric upload">
+                                                        </div>
 
-                                <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>MBit/s</small>
+        
 
-                                </div>
+                    
 
-                                
+        
 
-                                <div className="row-metric ping">
+                                                        <div className="row-metric download">
 
-                                <span className="icon">⚡</span> {test.ping.toFixed(0)} <small>ms</small>
+        
 
-                                </div>
+                                                        <span className="icon">⬇</span> {test.download.toFixed(0)} <small>MBit/s</small>
 
-                            </li>
+        
 
-                            ))}
+                                                        </div>
 
-                        </ul>
+        
 
-                    ) : (
+                                                        
+
+        
+
+                                                        <div className="row-metric upload">
+
+        
+
+                                                        <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>MBit/s</small>
+
+        
+
+                                                        </div>
+
+        
+
+                                                        
+
+        
+
+                                                        <div className="row-metric ping">
+
+        
+
+                                                        <span className="icon">⚡</span> {test.ping.toFixed(0)} <small>ms</small>
+
+        
+
+                                                        </div>
+
+        
+
+                                                    </li>
+
+        
+
+                    
+
+        
+
+                                                                                    {/* DETAIL ROWS FOR DASHBOARD */}
+
+        
+
+                    
+
+        
+
+                                                                                    {isExpanded && details.map(detail => (
+
+        
+
+                    
+
+        
+
+                                                                                        <li 
+
+        
+
+                    
+
+        
+
+                                                                                            key={detail.id} 
+
+        
+
+                    
+
+        
+
+                                                                                            className={`recent-tests-row`} 
+
+        
+
+                    
+
+        
+
+                                                                                            onClick={() => setSelectedTest(detail)} 
+
+        
+
+                    
+
+        
+
+                                                                                            style={{
+
+        
+
+                    
+
+        
+
+                                                                                                cursor: 'pointer', 
+
+        
+
+                    
+
+        
+
+                                                                                                background: 'rgba(0,0,0,0.02)', 
+
+        
+
+                    
+
+        
+
+                                                                                                opacity: 0.8,
+
+        
+
+                    
+
+        
+
+                                                                                                padding: '8px 15px' 
+
+        
+
+                    
+
+        
+
+                                                                                            }}
+
+        
+
+                    
+
+        
+
+                                                                                        >
+
+        
+
+                    
+
+        
+
+                                                                                                                                    <div className="row-id" style={{width: '60px', paddingLeft: '15px', fontSize: '0.8rem', color: '#999'}}>↳ {detail.id}</div>
+
+        
+
+                    
+
+        
+
+                                                                                                                                    <div className="row-time">
+
+        
+
+                    
+
+        
+
+                                                                                                                                        <div style={{display: 'flex', alignItems: 'center', gap: '5px', fontStyle: 'italic', color: '#999'}}>
+
+        
+
+                    
+
+        
+
+                                                                                                                                            {new Date(detail.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+
+        
+
+                    
+
+        
+
+                                                                                                                                        </div>
+
+        
+
+                    
+
+        
+
+                                                                                                                                    </div>
+
+        
+
+                    
+
+        
+
+                                                                                            
+
+        
+
+                    
+
+        
+
+                                                                                            <div className="row-server" style={{fontSize: '0.85rem', color: 'var(--text-secondary)'}}>
+
+        
+
+                    
+
+        
+
+                                                                                                {formatServerDisplay(detail)}
+
+        
+
+                    
+
+        
+
+                                                                                            </div>
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                            <div className="row-metric download">
+
+        
+
+                    
+
+        
+
+                                                                                                {detail.download.toFixed(0)} <small>MBit/s</small>
+
+        
+
+                    
+
+        
+
+                                                                                            </div>
+
+        
+
+                    
+
+        
+
+                                                                                            
+
+        
+
+                    
+
+        
+
+                                                                                            <div className="row-metric upload">
+
+        
+
+                    
+
+        
+
+                                                                                                {detail.upload.toFixed(0)} <small>MBit/s</small>
+
+        
+
+                    
+
+        
+
+                                                                                            </div>
+
+        
+
+                    
+
+        
+
+                                                                                            
+
+        
+
+                    
+
+        
+
+                                                                                            <div className="row-metric ping">
+
+        
+
+                    
+
+        
+
+                                                                                                {detail.ping.toFixed(0)} <small>ms</small>
+
+        
+
+                    
+
+        
+
+                                                                                            </div>
+
+        
+
+                    
+
+        
+
+                                                                                        </li>
+
+        
+
+                    
+
+        
+
+                                                                                    ))}
+
+        
+
+                                                </React.Fragment>
+
+        
+
+                                            )})}
+
+        
+
+                                    </ul>
+
+        
+
+                                ) : (
 
                         <div style={{padding: '20px', textAlign: 'center', color: 'var(--text-secondary)'}}>
 
@@ -1120,44 +1589,101 @@ function App() {
             </div>
 
             <ul className="recent-tests-list"> 
-                {history.map((test, index) => (
-                <li 
-                    key={test.id} 
-                    className={`recent-tests-row full-history-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
-                    onClick={() => setSelectedTest(test)} 
-                    style={{cursor: 'pointer'}}
-                >
-                    <div className="row-id">{test.id}</div>
-                    <div className="row-time">
-                    <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
-                        {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                        <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help'}}>
-                            {test.isManual ? '👤' : '🤖'}
-                        </span>
-                    </div>
-                    <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
-                    </div>
-                    
-                    <div className="row-server" title={test.serverLocation}>
-                    {formatServerDisplay(test)}
-                    </div>
+                {history
+                    .filter(test => test.isAggregate === 1 || !test.groupId || test.isManual === 1)
+                    .map((test, index) => {
+                        const isGroup = test.isAggregate === 1;
+                        const isExpanded = isGroup && expandedGroupId === test.groupId;
+                        
+                        // Detail-Items finden
+                        const details = isGroup ? history.filter(d => d.groupId === test.groupId && d.isAggregate === 0) : [];
 
-                    <div className="row-metric download">
-                    <span className="icon">⬇</span> {test.download.toFixed(0)} <small>MBit/s</small>
-                    </div>
-                    
-                    <div className="row-metric upload">
-                    <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>MBit/s</small>
-                    </div>
-                    
-                    <div className="row-metric ping">
-                    <span className="icon">⚡</span> {test.ping.toFixed(0)} <small>ms</small>
-                    </div>
-                    
-                    <div className="row-packet-loss">{test.packetLoss ? test.packetLoss.toFixed(2) : '0.00'}%</div>
-                    <div className="row-country">{test.serverCountry || '-'}</div>
-                </li>
-                ))}
+                        return (
+                            <React.Fragment key={test.id}>
+                                <li 
+                                    className={`recent-tests-row full-history-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
+                                    onClick={() => isGroup ? toggleExpand(test.groupId) : setSelectedTest(test)} 
+                                    style={{cursor: 'pointer', borderLeft: isGroup ? '4px solid #9b59b6' : undefined}}
+                                >
+                                    <div className="row-id">
+                                        {isGroup && <span style={{marginRight: '5px'}}>{isExpanded ? '▼' : '▶'}</span>}
+                                        {test.id}
+                                    </div>
+                                    <div className="row-time">
+                                    <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                                        {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        <div style={{display: 'flex', flexDirection: 'column', gap: '2px', marginLeft: '5px'}}>
+                                            <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help', lineHeight: 1}}>
+                                                {test.isManual ? '👤' : '🤖'}
+                                            </span>
+                                            {isGroup && <span title="Durchschnittswert einer Testreihe" style={{fontSize: '0.8rem', lineHeight: 1}}>📦</span>}
+                                        </div>
+                                    </div>
+                                    <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
+                                    </div>
+                                    
+                                    <div className="row-server" title={test.serverLocation}>
+                                    {formatServerDisplay(test)}
+                                    </div>
+
+                                    <div className="row-metric download">
+                                    <span className="icon">⬇</span> {test.download.toFixed(0)} <small>MBit/s</small>
+                                    </div>
+                                    
+                                    <div className="row-metric upload">
+                                    <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>MBit/s</small>
+                                    </div>
+                                    
+                                    <div className="row-metric ping">
+                                    <span className="icon">⚡</span> {test.ping.toFixed(0)} <small>ms</small>
+                                    </div>
+                                    
+                                    <div className="row-packet-loss">{test.packetLoss ? test.packetLoss.toFixed(2) : '0.00'}%</div>
+                                    <div className="row-country">{test.serverCountry || '-'}</div>
+                                </li>
+                                
+                                {/* DETAIL ROWS */}
+                                {isExpanded && details.map(detail => (
+                                    <li 
+                                        key={detail.id} 
+                                        className={`recent-tests-row full-history-row`} 
+                                        onClick={() => setSelectedTest(detail)} 
+                                        style={{
+                                            cursor: 'pointer', 
+                                            background: 'rgba(0,0,0,0.02)', 
+                                            opacity: 0.8
+                                        }}
+                                    >
+                                        <div className="row-id" style={{fontSize: '0.8rem', color: '#999', paddingLeft: '15px'}}>↳ {detail.id}</div>
+                                        <div className="row-time">
+                                            <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                                                {new Date(detail.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="row-server" style={{fontStyle: 'italic'}}>
+                                            {formatServerDisplay(detail)}
+                                        </div>
+
+                                        <div className="row-metric download">
+                                            {detail.download.toFixed(0)} <small>MBit/s</small>
+                                        </div>
+                                        
+                                        <div className="row-metric upload">
+                                            {detail.upload.toFixed(0)} <small>MBit/s</small>
+                                        </div>
+                                        
+                                        <div className="row-metric ping">
+                                            {detail.ping.toFixed(0)} <small>ms</small>
+                                        </div>
+                                        
+                                        <div className="row-packet-loss">{detail.packetLoss ? detail.packetLoss.toFixed(2) : '0.00'}%</div>
+                                        <div className="row-country">{detail.serverCountry}</div>
+                                    </li>
+                                ))}
+                            </React.Fragment>
+                        );
+                })}
             </ul>
       </div>
   );

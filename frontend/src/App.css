@@ -394,25 +394,30 @@ button.start-btn:disabled {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  gap: 10px; /* Erhöhter Gap */
 }
 
 .recent-tests-table-header > div {
   text-align: right; /* Standardmäßig rechts */
 }
 
+.recent-tests-table-header .header-id {
+    width: 60px; /* Für die neue ID-Spalte */
+    text-align: left;
+}
 .recent-tests-table-header .header-time {
-    width: 90px;
+    width: 110px; /* Etwas mehr Platz für Zeit + Icons */
     text-align: left;
 }
 .recent-tests-table-header .header-server {
     flex: 1;
     text-align: left;
-    margin: 0 20px;
+    margin: 0 5px; /* Etwas weniger Margin */
 }
 .recent-tests-table-header .header-download,
 .recent-tests-table-header .header-upload,
 .recent-tests-table-header .header-ping {
-    width: 120px;
+    width: 100px; /* Etwas schmaler, um Platz zu sparen */
 }
 
 
@@ -426,6 +431,7 @@ button.start-btn:disabled {
   border: 1px solid var(--border-color);
   box-shadow: var(--metric-shadow);
   transition: all 0.2s ease;
+  gap: 10px; /* Erhöhter Gap */
 }
 
 .recent-tests-row:hover {
@@ -435,10 +441,16 @@ button.start-btn:disabled {
 }
 
 /* Spalten-Stile */
+.row-id {
+  width: 60px; /* Für die neue ID-Spalte */
+  font-weight: 700;
+  color: var(--text-color);
+  text-align: left;
+}
 .row-time {
   font-weight: 700;
   color: var(--text-color);
-  width: 90px; /* Feste Breite */
+  width: 110px; /* Feste Breite */
   display: flex;
   flex-direction: column;
   line-height: 1.2;
