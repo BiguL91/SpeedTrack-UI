@@ -759,7 +759,7 @@ app.get('/api/export', (req, res) => {
       return;
     }
 
-    let csvContent = 'ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country,Server ID\n';
+    let csvContent = 'ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country,Server ID,Group ID,Is Aggregate\n';
     
     rows.forEach(row => {
       const escape = (text) => text ? "" + text.toString().split("\"").join("\"\"") + "" : "";
@@ -774,7 +774,9 @@ app.get('/api/export', (req, res) => {
         escape(row.isp),
         escape(row.serverLocation),
         escape(row.serverCountry),
-        row.serverId || '' // Server ID hinzufügen, falls vorhanden
+        row.serverId || '', // Server ID
+        escape(row.groupId || ''), // Group ID
+        row.isAggregate || 0 // Is Aggregate
       ].join(',') + '\n';
     });
 
@@ -808,8 +810,8 @@ app.post('/api/import', upload.single('file'), (req, res) => {
                 
                 const stmt = db.prepare(`
                     INSERT OR REPLACE INTO results (
-                        id, timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, serverId
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        id, timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, serverId, groupId, isAggregate
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `);
 
                 let errorOccurred = false;
@@ -818,7 +820,7 @@ app.post('/api/import', upload.single('file'), (req, res) => {
                     if (errorOccurred) return;
 
                     // Mapping CSV Header -> DB Columns
-                    // CSV: ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country,Server ID
+                    // CSV: ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country,Server ID,Group ID,Is Aggregate
                     const id = row['ID'];
                     const timestamp = row['Timestamp'];
                     const ping = parseFloat(row['Ping (ms)']) || 0;
@@ -829,9 +831,11 @@ app.post('/api/import', upload.single('file'), (req, res) => {
                     const server = row['Server']; // Location
                     const country = row['Server Country'];
                     const serverId = row['Server ID'] || null;
+                    const groupId = row['Group ID'] || null;
+                    const isAggregate = parseInt(row['Is Aggregate']) || 0;
 
                     if (id && timestamp) {
-                        stmt.run([id, timestamp, ping, download, upload, packetLoss, isp, server, country, serverId], (err) => {
+                        stmt.run([id, timestamp, ping, download, upload, packetLoss, isp, server, country, serverId, groupId, isAggregate], (err) => {
                             if (err) {
                                 console.error("Import Insert Error:", err);
                                 errorOccurred = true;
