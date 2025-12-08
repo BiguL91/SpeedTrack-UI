@@ -742,14 +742,29 @@ function App() {
   // --- RENDER HELPERS ---
   const renderDashboard = () => (
       <>
-        <div className="card">
-            <button className="start-btn" onClick={runTest} disabled={loading}>
-            {loading ? 'Speedtest läuft...' : 'Neuen Test starten'}
-            </button>
-            {error && <p style={{color: 'red', marginTop: '10px'}}>{error}</p>}
-        </div>
-
-        {/* HAUPTBEREICH: Combined Metrics */}
+                    <div className="card" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px'}}>
+                      <button className="start-btn" onClick={runTest} disabled={loading}>
+                        {loading ? 'Speedtest läuft...' : 'Neuen Test starten'}
+                      </button>
+                      
+                      <div style={{display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap'}}>
+                          {lastResult && (
+                              <div style={{color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: '500'}}>
+                                                      Letzter Test: <span style={{color: 'var(--text-color)', fontWeight: 'bold'}}>
+                                                          {new Date(lastResult.timestamp).toLocaleString([], {year: 'numeric', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})} Uhr
+                                                      </span>                              </div>
+                          )}
+              
+                          {!loading && (
+                              <div className="next-test-badge" style={{margin: 0}}>
+                              <span className="pulse-dot"></span>
+                              Nächster Test: <strong>{getNextRunTime()}</strong>
+                              </div>
+                          )}
+                      </div>
+                      
+                      {error && <p style={{color: 'red', width: '100%', marginTop: '0'}}>{error}</p>}
+                    </div>        {/* HAUPTBEREICH: Combined Metrics */}
         <div className="card card-main">
             <h2>{resultCardTitle}</h2>
             
@@ -757,13 +772,6 @@ function App() {
                 <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic'}}>
                 Ermittle Daten...
                 </p>
-            )}
-
-            {!loading && (
-                <div className="next-test-badge">
-                <span className="pulse-dot"></span>
-                Nächster Test: <strong>{getNextRunTime()}</strong>
-                </div>
             )}
 
             <div className="results-grid">

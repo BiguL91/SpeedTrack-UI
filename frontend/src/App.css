@@ -316,18 +316,18 @@ button.start-btn:disabled {
   text-decoration: none; /* Keine Unterstreichung bei Buttons */
 }
 
-.icon-import {
-  color: #3498db; /* Blau für Upload/Import */
+.export-link span { /* Allgemeine Styles für Icons in Export/Import Buttons */
   margin-left: 5px;
   font-weight: 800;
   font-size: 1.1em;
 }
 
-.icon-export {
+.export-link .icon-import {
+  color: #3498db; /* Blau für Upload/Import */
+}
+
+.export-link .icon-export {
   color: #2ecc71; /* Grün für Download/Export */
-  margin-left: 5px;
-  font-weight: 800;
-  font-size: 1.1em;
 }
 
 
