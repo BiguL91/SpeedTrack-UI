@@ -882,15 +882,15 @@ function App() {
                                         style={{display: 'none'}}
                                         onChange={handleFileUpload}
                                     />
-                                                        <button 
-                                                            onClick={handleImportClick}
-                                                            className="export-link"
-                                                        >
-                                                            CSV Import <span className="button-icon">⬆</span>
-                                                        </button>
-                                                        <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
-                                                            CSV Export <span className="button-icon">⬇</span>
-                                                        </a>                                </div>            </div>
+                                                                            <button 
+                                                                                onClick={handleImportClick}
+                                                                                className="export-link"
+                                                                            >
+                                                                                CSV Import <span className="icon-import">⬆</span>
+                                                                            </button>
+                                                                            <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
+                                                                                CSV Export <span className="icon-export">⬇</span>
+                                                                            </a>                                </div>            </div>
             
             <div className="recent-tests-table-header">
                 <div className="header-time">Uhrzeit</div>
@@ -968,15 +968,15 @@ function App() {
                         style={{display: 'none'}} 
                         onChange={handleFileUpload} 
                     />
-                                        <button 
-                                            onClick={handleImportClick}
-                                            className="export-link"
-                                        >
-                                            CSV Import <span className="button-icon">⬆</span>
-                                        </button>
-                                        <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
-                                            CSV Export <span className="button-icon">⬇</span>
-                                        </a>                </div>
+                                                            <button 
+                                                                onClick={handleImportClick}
+                                                                className="export-link" 
+                                                            >
+                                                                CSV Import <span className="icon-import">⬆</span>
+                                                            </button>
+                                                            <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
+                                                            CSV Export <span className="icon-export">⬇</span>
+                                                            </a>                </div>
           </div>
 
           <div className="recent-tests-table-header full-history-header">
