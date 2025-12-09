@@ -2969,7 +2969,7 @@ function App() {
                                     placeholder="z.B. 1234, 5678"
                                 />
                                 <div style={{fontSize: '0.8rem', color: '#666', marginTop: '0'}}>
-                                    Diese Server werden bei automatischen Tests ignoriert.
+                                    Diese Server werden bei automatischen Tests ignoriert (nicht bei manuellen Tests).
                                 </div>
                         </div>
                     </div>
