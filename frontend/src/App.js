@@ -872,6 +872,17 @@ function App() {
   const displayData = loading ? currentTestValues : (lastResult || { download: 0, upload: 0, ping: 0 });
   const resultCardTitle = loading ? 'Live Test läuft...' : 'Letztes Ergebnis';
 
+  // Helper: Prüft ob ein Test unter der Toleranz liegt
+  const isBelowThreshold = (t) => {
+      const eDown = parseFloat(expectedDownload);
+      const eUp = parseFloat(expectedUpload);
+      const tol = parseFloat(tolerance);
+      
+      if (eDown > 0 && t.download < eDown * (1 - tol / 100)) return true;
+      if (eUp > 0 && t.upload < eUp * (1 - tol / 100)) return true;
+      return false;
+  };
+
   // --- RENDER HELPERS ---
   const renderDashboard = () => (
       <>
@@ -913,7 +924,16 @@ function App() {
                 {/* DOWNLOAD */}
                 <div className="metric">
                 <h3>Download</h3>
-                <p>{displayData.download?.toFixed(2) || '0.00'} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
+                <p 
+                    style={{ 
+                        color: (
+                            parseFloat(expectedDownload) > 0 && 
+                            displayData.download < parseFloat(expectedDownload) * (1 - parseFloat(tolerance) / 100)
+                        ) ? '#e74c3c' : 'var(--text-color)' 
+                    }}
+                >
+                    {displayData.download?.toFixed(2) || '0.00'} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span>
+                </p>
                 
                 {history.length > 0 && (
                     <div className="sub-metrics">
@@ -927,7 +947,16 @@ function App() {
                 {/* UPLOAD */}
                 <div className="metric">
                 <h3>Upload</h3>
-                <p>{displayData.upload?.toFixed(2) || '0.00'} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span></p>
+                <p 
+                    style={{ 
+                        color: (
+                            parseFloat(expectedUpload) > 0 && 
+                            displayData.upload < parseFloat(expectedUpload) * (1 - parseFloat(tolerance) / 100)
+                        ) ? '#e74c3c' : 'var(--text-color)' 
+                    }}
+                >
+                    {displayData.upload?.toFixed(2) || '0.00'} <br/> <span style={{fontSize: '0.6em'}}>MBit/s</span>
+                </p>
                 
                 {history.length > 0 && (
                     <div className="sub-metrics">
@@ -1134,7 +1163,11 @@ function App() {
 
                     
 
-                                                                            style={{cursor: 'pointer', borderLeft: isGroup ? '4px solid #9b59b6' : undefined}}
+                                                                            style={{
+                                                                                cursor: 'pointer', 
+                                                                                borderLeft: isGroup ? '4px solid #9b59b6' : undefined,
+                                                                                backgroundColor: isBelowThreshold(test) ? 'rgba(231, 76, 60, 0.1)' : undefined
+                                                                            }}
 
                     
 
@@ -1270,15 +1303,11 @@ function App() {
 
         
 
-                                                        <div className="row-metric download">
+                                                                                                                <div className="row-metric download">
 
         
 
-                                                        <span className="icon">⬇</span> {test.download.toFixed(0)} <small>MBit/s</small>
-
-        
-
-                                                        </div>
+                    
 
         
 
@@ -1286,15 +1315,187 @@ function App() {
 
         
 
-                                                        <div className="row-metric upload">
+                    
 
         
 
-                                                        <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>MBit/s</small>
+                                                                                                                <span className="icon">⬇</span> 
 
         
 
-                                                        </div>
+                    
+
+        
+
+                                                                                                                <span style={{
+
+        
+
+                    
+
+        
+
+                                                                                                                    color: (parseFloat(expectedDownload) > 0 && test.download < parseFloat(expectedDownload) * (1 - parseFloat(tolerance) / 100)) ? '#e74c3c' : 'inherit'
+
+        
+
+                    
+
+        
+
+                                                                                                                }}>
+
+        
+
+                    
+
+        
+
+                                                                                                                    {test.download.toFixed(0)} 
+
+        
+
+                    
+
+        
+
+                                                                                                                </span>
+
+        
+
+                    
+
+        
+
+                                                                                                                <small>MBit/s</small>
+
+        
+
+                    
+
+        
+
+                                                        
+
+        
+
+                    
+
+        
+
+                                                                                                                </div>
+
+        
+
+                    
+
+        
+
+                                                        
+
+        
+
+                    
+
+        
+
+                                                                                                                
+
+        
+
+                    
+
+        
+
+                                                        
+
+        
+
+                    
+
+        
+
+                                                                                                                <div className="row-metric upload">
+
+        
+
+                    
+
+        
+
+                                                        
+
+        
+
+                    
+
+        
+
+                                                                                                                <span className="icon">⬆</span> 
+
+        
+
+                    
+
+        
+
+                                                                                                                <span style={{
+
+        
+
+                    
+
+        
+
+                                                                                                                    color: (parseFloat(expectedUpload) > 0 && test.upload < parseFloat(expectedUpload) * (1 - parseFloat(tolerance) / 100)) ? '#e74c3c' : 'inherit'
+
+        
+
+                    
+
+        
+
+                                                                                                                }}>
+
+        
+
+                    
+
+        
+
+                                                                                                                    {test.upload.toFixed(0)} 
+
+        
+
+                    
+
+        
+
+                                                                                                                </span>
+
+        
+
+                    
+
+        
+
+                                                                                                                <small>MBit/s</small>
+
+        
+
+                    
+
+        
+
+                                                        
+
+        
+
+                    
+
+        
+
+                                                                                                                </div>
 
         
 
@@ -1386,7 +1587,7 @@ function App() {
 
         
 
-                                                                                                background: 'rgba(0,0,0,0.02)', 
+                                                                                                background: isBelowThreshold(detail) ? 'rgba(231, 76, 60, 0.1)' : 'rgba(0,0,0,0.02)', 
 
         
 
@@ -1514,7 +1715,7 @@ function App() {
 
         
 
-                                                                                            <div className="row-metric download">
+                                                                                                                                                                                        <div className="row-metric download">
 
         
 
@@ -1522,15 +1723,7 @@ function App() {
 
         
 
-                                                                                                {detail.download.toFixed(0)} <small>MBit/s</small>
-
-        
-
-                    
-
-        
-
-                                                                                            </div>
+                                                    
 
         
 
@@ -1546,7 +1739,7 @@ function App() {
 
         
 
-                                                                                            <div className="row-metric upload">
+                                                    
 
         
 
@@ -1554,7 +1747,7 @@ function App() {
 
         
 
-                                                                                                {detail.upload.toFixed(0)} <small>MBit/s</small>
+                                                                                                                                                                                            <span style={{
 
         
 
@@ -1562,7 +1755,319 @@ function App() {
 
         
 
-                                                                                            </div>
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                                color: (parseFloat(expectedDownload) > 0 && detail.download < parseFloat(expectedDownload) * (1 - parseFloat(tolerance) / 100)) ? '#e74c3c' : 'inherit'
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                            }}>
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                                {detail.download.toFixed(0)} 
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                            </span>
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                            <small>MBit/s</small>
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                            
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                        </div>
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                            
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                        
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                            
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                        <div className="row-metric upload">
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                            
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                            <span style={{
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                                color: (parseFloat(expectedUpload) > 0 && detail.upload < parseFloat(expectedUpload) * (1 - parseFloat(tolerance) / 100)) ? '#e74c3c' : 'inherit'
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                            }}>
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                                {detail.upload.toFixed(0)} 
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                            </span>
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                            <small>MBit/s</small>
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                            
+
+        
+
+                    
+
+        
+
+                                                    
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                        </div>
 
         
 
@@ -1727,7 +2232,11 @@ function App() {
                                 <li 
                                     className={`recent-tests-row full-history-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
                                     onClick={() => isGroup ? toggleExpand(test.groupId) : setSelectedTest(test)} 
-                                    style={{cursor: 'pointer', borderLeft: isGroup ? '4px solid #9b59b6' : undefined}}
+                                    style={{
+                                        cursor: 'pointer', 
+                                        borderLeft: isGroup ? '4px solid #9b59b6' : undefined,
+                                        backgroundColor: isBelowThreshold(test) ? 'rgba(231, 76, 60, 0.1)' : undefined
+                                    }}
                                 >
                                     <div className="row-id" style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                                         {isGroup && <span style={{fontSize: '0.8rem'}}>{isExpanded ? '▼' : '▶'}</span>}
@@ -1752,11 +2261,23 @@ function App() {
                                     </div>
 
                                     <div className="row-metric download">
-                                    <span className="icon">⬇</span> {test.download.toFixed(0)} <small>MBit/s</small>
+                                    <span className="icon">⬇</span> 
+                                    <span style={{
+                                        color: (parseFloat(expectedDownload) > 0 && test.download < parseFloat(expectedDownload) * (1 - parseFloat(tolerance) / 100)) ? '#e74c3c' : 'inherit'
+                                    }}>
+                                        {test.download.toFixed(0)} 
+                                    </span>
+                                    <small>MBit/s</small>
                                     </div>
                                     
                                     <div className="row-metric upload">
-                                    <span className="icon">⬆</span> {test.upload.toFixed(0)} <small>MBit/s</small>
+                                    <span className="icon">⬆</span> 
+                                    <span style={{
+                                        color: (parseFloat(expectedUpload) > 0 && test.upload < parseFloat(expectedUpload) * (1 - parseFloat(tolerance) / 100)) ? '#e74c3c' : 'inherit'
+                                    }}>
+                                        {test.upload.toFixed(0)} 
+                                    </span>
+                                    <small>MBit/s</small>
                                     </div>
                                     
                                     <div className="row-metric ping">
@@ -1775,7 +2296,7 @@ function App() {
                                         onClick={() => setSelectedTest(detail)} 
                                         style={{
                                             cursor: 'pointer', 
-                                            background: 'rgba(0,0,0,0.02)', 
+                                            background: isBelowThreshold(detail) ? 'rgba(231, 76, 60, 0.1)' : 'rgba(0,0,0,0.02)', 
                                             opacity: 0.8
                                         }}
                                     >
@@ -1791,11 +2312,21 @@ function App() {
                                         </div>
 
                                         <div className="row-metric download">
-                                            {detail.download.toFixed(0)} <small>MBit/s</small>
+                                            <span style={{
+                                                color: (parseFloat(expectedDownload) > 0 && detail.download < parseFloat(expectedDownload) * (1 - parseFloat(tolerance) / 100)) ? '#e74c3c' : 'inherit'
+                                            }}>
+                                                {detail.download.toFixed(0)} 
+                                            </span>
+                                            <small>MBit/s</small>
                                         </div>
                                         
                                         <div className="row-metric upload">
-                                            {detail.upload.toFixed(0)} <small>MBit/s</small>
+                                            <span style={{
+                                                color: (parseFloat(expectedUpload) > 0 && detail.upload < parseFloat(expectedUpload) * (1 - parseFloat(tolerance) / 100)) ? '#e74c3c' : 'inherit'
+                                            }}>
+                                                {detail.upload.toFixed(0)} 
+                                            </span>
+                                            <small>MBit/s</small>
                                         </div>
                                         
                                         <div className="row-metric ping">
