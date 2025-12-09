@@ -172,33 +172,24 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 
 const runSpeedtestPromise = () => {
-
     return new Promise((resolve, reject) => {
-
-        exec('speedtest --format=json --accept-license --accept-gdpr', (error, stdout, stderr) => {
-
+        // Timeout 240s (4 Minuten)
+        exec('speedtest --format=json --accept-license --accept-gdpr', { timeout: 240000 }, (error, stdout, stderr) => {
             if (error) {
-
+                // Prüfen ob es ein Timeout war
+                if (error.killed) {
+                    return reject(new Error('Speedtest Zeitüberschreitung (240s)'));
+                }
                 return reject(error);
-
             }
-
             try {
-
                 const result = JSON.parse(stdout);
-
                 resolve(result);
-
             } catch (parseError) {
-
                 reject(parseError);
-
             }
-
         });
-
     });
-
 };
 
 
@@ -695,17 +686,16 @@ app.post('/api/settings', (req, res) => {
 app.get('/api/history', (req, res) => {
   const limit = req.query.limit ? parseInt(req.query.limit) : null;
   
-  // Filter: Zeige Aggregate, Manuelle Tests oder Tests ohne Gruppe (normale Einzeltests)
-  // Verstecke die Einzelversuche einer Retry-Serie (die haben groupId aber isAggregate=0)
-  let sql = `
-    SELECT * FROM results 
-    WHERE (isAggregate = 1 OR groupId IS NULL OR isManual = 1)
-    ORDER BY timestamp DESC
-  `;
-  
+  let sql = 'SELECT * FROM results ORDER BY timestamp DESC';
   let params = [];
 
   if (limit) {
+      // Achtung: Wenn wir im Frontend filtern wollen, ist LIMIT hier gefährlich,
+      // weil wir evtl. die Aggregate laden, aber die zugehörigen Details durch das Limit abgeschnitten werden.
+      // Für Dashboard (Limit 50) ist das Risiko gering, aber vorhanden.
+      // Besser: Wir laden für Dashboard etwas mehr oder filtern im SQL intelligenter.
+      // Aber für "Option A" (Client Side) laden wir einfach alles oder nehmen das Risiko in Kauf.
+      // Wir lassen das Limit erst mal drin.
       sql += ' LIMIT ?';
       params.push(limit);
   }
@@ -887,6 +877,16 @@ app.get('/api/test/stream', (req, res) => {
   
   const speedtest = spawn('speedtest', ['--accept-license', '--accept-gdpr', '--progress=yes']);
 
+  // Sicherheits-Timeout (4 Minuten), falls der Prozess hängt
+  const safetyTimeout = setTimeout(() => {
+      if (!speedtest.killed) {
+          console.error('Manueller Speedtest: Zeitüberschreitung (Safety Kill).');
+          speedtest.kill();
+          res.write(`data: ${JSON.stringify({ type: 'error', message: 'Zeitüberschreitung: Test wurde abgebrochen (4 Min Limit).' })}\n\n`);
+          // Stream wird durch 'close' Event sauber beendet
+      }
+  }, 240000);
+
   let buffer = '';
   
   let finalResult = {
@@ -903,6 +903,15 @@ app.get('/api/test/stream', (req, res) => {
     serverPort: null,
     serverIp: null
   };
+
+  // Fehler beim Starten des Prozesses abfangen (z.B. Befehl nicht gefunden)
+  speedtest.on('error', (err) => {
+      console.error('Fehler beim Starten von Speedtest:', err);
+      clearTimeout(safetyTimeout);
+      isTestRunning = false;
+      res.write(`data: ${JSON.stringify({ type: 'error', message: 'Fehler beim Starten des Tests: ' + err.message })}\n\n`);
+      res.end();
+  });
 
   speedtest.stdout.on('data', (data) => {
     const text = data.toString();
@@ -941,6 +950,7 @@ app.get('/api/test/stream', (req, res) => {
   });
 
   speedtest.on('close', (code) => {
+    clearTimeout(safetyTimeout); // Timeout entfernen
     isTestRunning = false; // Lock freigeben
     console.log(`Manueller Speedtest beendet mit Code ${code}`);
 
