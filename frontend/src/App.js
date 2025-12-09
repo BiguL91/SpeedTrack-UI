@@ -1330,87 +1330,123 @@ function App() {
 
                     
 
-                                                                                                                                        <React.Fragment key={test.id}>
+                                                                                                                                                                                                            <React.Fragment key={test.id}>
 
                     
 
-                                                                    
+                                                                                                                                        
 
                     
 
-                                                                                                                                            <li 
+                                                                                                                                                                                                                <li 
 
                     
 
-                                                                    
+                                                                                                                                        
 
                     
 
-                                                                                                                                                className={`recent-tests-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
+                                                                                                                                                                                                                    className={`recent-tests-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
 
                     
 
-                                                                    
+                                                                                                                                        
 
                     
 
-                                                                                                                                                onClick={() => isGroup ? toggleExpand(test.groupId) : setSelectedTest(test)} 
+                                                                                                                                                                                                                    onClick={() => setSelectedTest(test)} 
 
                     
 
-                                                                    
+                                                                                                                                        
 
                     
 
-                                                                                                                                                style={{
+                                                                                                                                                                                                                    style={{
 
                     
 
-                                                                                                                                                    cursor: 'pointer', 
+                                                                                                                                                                                                                        cursor: 'pointer', 
 
                     
 
-                                                                                                                                                    borderLeft: isGroup ? '4px solid #9b59b6' : undefined,
+                                                                                                                                                                                                                        borderLeft: isGroup ? '4px solid #9b59b6' : undefined,
 
                     
 
-                                                                                                                                                    backgroundColor: isBelowThreshold(test) ? 'rgba(231, 76, 60, 0.1)' : undefined
+                                                                                                                                                                                                                        backgroundColor: isBelowThreshold(test) ? 'rgba(231, 76, 60, 0.1)' : undefined
 
                     
 
-                                                                                                                                                }}
+                                                                                                                                                                                                                    }}
 
                     
 
-                                                                    
+                                                                                                                                        
 
                     
 
-                                                                                                                                            >
+                                                                                                                                                                                                                >
 
                     
 
-                                                                                                                                                            
+                                                                                                                                                                                                                                
 
                     
 
-                                                                                                                                                                <div className="row-id" style={{width: '120px', fontWeight: 'bold', color: 'var(--text-color)', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                                                                                                                                                                                                                    <div 
 
                     
 
-                                                                    
+                                                                                                                                                                                                                                        className="row-id" 
 
                     
 
-                                                                                                                                                                    {isGroup && <span style={{fontSize: '0.8rem'}}>{isExpanded ? '▼' : '▶'}</span>}
+                                                                                                                                                                                                                                        style={{width: '120px', fontWeight: 'bold', color: 'var(--text-color)', display: 'flex', alignItems: 'center', gap: '8px', cursor: isGroup ? 'pointer' : 'inherit'}}
 
                     
 
-                                                                    
+                                                                                                                                                                                                                                        onClick={(e) => {
 
                     
 
-                                                                                                                                                                    {test.id}
+                                                                                                                                                                                                                                            if (isGroup) {
+
+                    
+
+                                                                                                                                                                                                                                                e.stopPropagation();
+
+                    
+
+                                                                                                                                                                                                                                                toggleExpand(test.groupId);
+
+                    
+
+                                                                                                                                                                                                                                            }
+
+                    
+
+                                                                                                                                                                                                                                        }}
+
+                    
+
+                                                                                                                                                                                                                                    >
+
+                    
+
+                                                                                                                                        
+
+                    
+
+                                                                                                                                                                                                                                        {isGroup && <span style={{fontSize: '0.8rem'}}>{isExpanded ? '▼' : '▶'}</span>}
+
+                    
+
+                                                                                                                                        
+
+                    
+
+                                                                                                                                                                                                                                        {test.id}
 
                     
 
@@ -2520,14 +2556,23 @@ function App() {
                             <React.Fragment key={test.id}>
                                 <li 
                                     className={`recent-tests-row full-history-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
-                                    onClick={() => isGroup ? toggleExpand(test.groupId) : setSelectedTest(test)} 
+                                    onClick={() => setSelectedTest(test)} 
                                     style={{
                                         cursor: 'pointer', 
                                         borderLeft: isGroup ? '4px solid #9b59b6' : undefined,
                                         backgroundColor: isBelowThreshold(test) ? 'rgba(231, 76, 60, 0.1)' : undefined
                                     }}
                                 >
-                                    <div className="row-id" style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                    <div 
+                                        className="row-id" 
+                                        style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: isGroup ? 'pointer' : 'inherit'}}
+                                        onClick={(e) => {
+                                            if (isGroup) {
+                                                e.stopPropagation();
+                                                toggleExpand(test.groupId);
+                                            }
+                                        }}
+                                    >
                                         {isGroup && <span style={{fontSize: '0.8rem'}}>{isExpanded ? '▼' : '▶'}</span>}
                                         {test.id}
                                         <div style={{display: 'flex', gap: '4px'}}>
