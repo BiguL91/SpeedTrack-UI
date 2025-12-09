@@ -16,8 +16,8 @@ const HistoryTable = ({
     
     // Helper to check if server is blacklisted
     const isBlacklisted = (serverId) => {
-        if (!serverId) return false;
-        return serverBlacklist.split(',').map(s => s.trim()).includes(String(serverId));
+        if (!serverId || !serverBlacklist) return false;
+        return String(serverBlacklist).split(',').map(s => s.trim()).includes(String(serverId));
     };
 
     if (!tests || tests.length === 0) {

@@ -21,6 +21,26 @@ app.use(express.json());
 // Globale Variable zur Vermeidung gleichzeitiger Tests
 let isTestRunning = false;
 
+// --- STATUS BROADCAST SYSTEM (SSE) ---
+let statusClients = [];
+
+function broadcastStatus(message, type = 'info', extra = null) {
+    // Console log für Server-Log
+    console.log(`[Status] ${message}`);
+    
+    // An verbundene Clients senden
+    const payload = JSON.stringify({ 
+        message, 
+        type, 
+        timestamp: new Date().toISOString(),
+        ...extra 
+    });
+    
+    statusClients.forEach(client => {
+        client.res.write(`data: ${payload}\n\n`);
+    });
+}
+
 // Datenbank-Einrichtung
 // Prüfe ob /app/data existiert (Docker Volume), sonst lokales Verzeichnis nutzen
 const dbDir = '/app/data';
@@ -323,11 +343,12 @@ async function runScheduledTest() {
 
   if (isTestRunning) {
     console.log(`[${new Date().toISOString()}] Geplanter Test übersprungen: Ein anderer Test läuft bereits.`);
+    // Kein Broadcast hier, um Spam zu vermeiden, oder nur als 'warning'
     return;
   }
 
   isTestRunning = true;
-  console.log(`[${new Date().toISOString()}] Starte geplanten Speedtest...`);
+  broadcastStatus("Starte geplanten automatischen Speedtest...", "start");
 
   try {
       // 1. Settings laden
@@ -357,11 +378,12 @@ async function runScheduledTest() {
       // Initialen Server bestimmen (wenn Blacklist aktiv)
       let currentServerId = null;
       if (globalBlacklist.length > 0) {
+          broadcastStatus("Prüfe Server-Verfügbarkeit (Blacklist aktiv)...", "info");
           try {
               const bestServer = await findBestServer(currentBlacklist);
               if (bestServer) {
                   currentServerId = bestServer.id;
-                  console.log(`[Scheduled] Wähle Server ID: ${currentServerId} (${bestServer.name})`);
+                  broadcastStatus(`Server gewählt: ${bestServer.name} (${bestServer.id})`, "info");
               } else {
                   console.warn("[Scheduled] Keine Server verfügbar (alle geblacklistet?). Nutze Auto-Select.");
               }
@@ -373,9 +395,11 @@ async function runScheduledTest() {
       // 2. Ersten Test ausführen
       let attempt1;
       try {
+          broadcastStatus("Führe initialen Test aus...", "running");
           attempt1 = await runSpeedtestPromise(currentServerId);
       } catch (e) {
           console.error("Erster Test fehlgeschlagen:", e);
+          broadcastStatus(`Test Fehler: ${e.message}`, "error");
           isTestRunning = false;
           return;
       }
@@ -384,11 +408,12 @@ async function runScheduledTest() {
       // müssen wir jetzt den Server fixieren, den Ookla gewählt hat, damit 'KEEP' funktioniert.
       if (retryServerStrategy === 'KEEP' && !currentServerId && attempt1.server && attempt1.server.id) {
           currentServerId = attempt1.server.id;
-          console.log(`[Scheduled] Erster Test nutzte Auto-Server ID: ${currentServerId}. Fixiere für Retries.`);
       }
 
       const downMbps = (attempt1.download.bandwidth * 8) / 1000000;
       const upMbps = (attempt1.upload.bandwidth * 8) / 1000000;
+      
+      broadcastStatus(`Ergebnis: ↓ ${downMbps.toFixed(2)} Mbps | ↑ ${upMbps.toFixed(2)} Mbps`, "info");
 
       // 3. Prüfen ob Retry nötig
       let needsRetry = false;
@@ -398,10 +423,10 @@ async function runScheduledTest() {
       if (!needsRetry) {
           // Alles OK -> Normal speichern
           await saveResultPromise(attempt1);
-          console.log(`[${new Date().toISOString()}] Test erfolgreich (kein Retry nötig).`);
+          broadcastStatus("Test erfolgreich abgeschlossen. Werte OK.", "success");
       } else {
           // RETRY LOGIK
-          console.log(`[${new Date().toISOString()}] Werte außerhalb der Toleranz. Starte ${retryCount} Wiederholungen...`);
+          broadcastStatus(`Werte unter Toleranz. Starte ${retryCount} Wiederholungen...`, "warning");
           
           const groupId = require('crypto').randomUUID(); 
           await saveResultPromise(attempt1, { groupId });
@@ -409,7 +434,7 @@ async function runScheduledTest() {
           const allResults = [attempt1];
 
           for (let i = 0; i < retryCount; i++) {
-              console.log(`Warte ${retryDelay}s vor Retry ${i+1}...`);
+              broadcastStatus(`Warte ${retryDelay}s vor Wiederholung ${i+1}/${retryCount}...`, "waiting");
               await sleep(retryDelay * 1000);
               
               // Server-Strategie: Wenn 'NEW', suche neuen Server
@@ -426,11 +451,11 @@ async function runScheduledTest() {
                   });
 
                   try {
-                      console.log("Suche neuen Server für Retry...");
+                      broadcastStatus("Suche alternativen Server...", "info");
                       const nextServer = await findBestServer(currentBlacklist);
                       if (nextServer) {
                           currentServerId = nextServer.id;
-                          console.log(`Retry ${i+1}: Neuer Server ID ${currentServerId} (${nextServer.name})`);
+                          broadcastStatus(`Server gewechselt: ${nextServer.name} (${currentServerId})`, "info");
                       } else {
                           console.warn("Kein neuer Server gefunden, nutze alten weiter.");
                       }
@@ -440,12 +465,17 @@ async function runScheduledTest() {
               }
 
               try {
-                  console.log(`Starte Retry ${i+1}/${retryCount}...`);
+                  broadcastStatus(`Starte Wiederholung ${i+1}...`, "running");
                   const retryResult = await runSpeedtestPromise(currentServerId);
                   await saveResultPromise(retryResult, { groupId });
                   allResults.push(retryResult);
+                  
+                  const rDown = (retryResult.download.bandwidth * 8) / 1000000;
+                  broadcastStatus(`Wiederholung ${i+1}: ↓ ${rDown.toFixed(2)} Mbps`, "info");
+                  
               } catch (e) {
                   console.error(`Retry ${i+1} fehlgeschlagen:`, e);
+                  broadcastStatus(`Wiederholung ${i+1} Fehler: ${e.message}`, "error");
               }
           }
 
@@ -516,11 +546,12 @@ async function runScheduledTest() {
               timestamp: new Date().toISOString()
           });
           
-          console.log(`[${new Date().toISOString()}] Wiederholungen abgeschlossen. Aggregat (${retryStrategy}) gespeichert.`);
+          broadcastStatus(`Testserie beendet. Aggregat (${retryStrategy}) gespeichert.`, "success");
       }
 
   } catch (err) {
       console.error("Fehler im Scheduled Test Ablauf:", err);
+      broadcastStatus(`Systemfehler: ${err.message}`, "error");
   } finally {
       isTestRunning = false;
   }
@@ -902,6 +933,23 @@ app.post('/api/import', upload.single('file'), (req, res) => {
                 fs.unlinkSync(filePath);
             });
         });
+});
+
+// STATUS STREAM ENDPOINT
+app.get('/api/status/stream', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const client = { id: Date.now(), res };
+    statusClients.push(client);
+
+    // Initial message
+    res.write(`data: ${JSON.stringify({ message: "Verbunden mit Status-Stream", type: "info" })}\n\n`);
+
+    req.on('close', () => {
+        statusClients = statusClients.filter(c => c.id !== client.id);
+    });
 });
 
 app.post('/api/test', (req, res) => {

@@ -10,6 +10,7 @@ import SettingsModal from './components/SettingsModal';
 import TestDetailModal from './components/TestDetailModal';
 import ManualResultModal from './components/ManualResultModal';
 import HistoryTable from './components/HistoryTable';
+import SystemStatusPanel from './components/SystemStatusPanel';
 
 function App() {
   const [history, setHistory] = useState([]);
@@ -873,6 +874,9 @@ function App() {
           {notification.message}
         </div>
       )}
+
+      {/* SYSTEM STATUS PANEL */}
+      <SystemStatusPanel />
     </div>
   );
 }
