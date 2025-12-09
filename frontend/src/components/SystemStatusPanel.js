@@ -1,59 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const SystemStatusPanel = () => {
-    const [logs, setLogs] = useState([]);
-    const [isConnected, setIsConnected] = useState(false);
+const SystemStatusPanel = ({ logs = [], isConnected = false }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const logEndRef = useRef(null);
-    const eventSourceRef = useRef(null);
-
-    useEffect(() => {
-        let retryTimeout;
-
-        const connect = () => {
-            if (eventSourceRef.current) {
-                eventSourceRef.current.close();
-            }
-
-            const eventSource = new EventSource('/api/status/stream');
-            eventSourceRef.current = eventSource;
-
-            eventSource.onopen = () => {
-                setIsConnected(true);
-                // System Nachricht
-                // setLogs(prev => [...prev.slice(-49), { message: "Verbunden mit System-Status", type: "system", timestamp: new Date().toISOString() }]);
-            };
-
-            eventSource.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    setLogs(prev => {
-                        // Max 50 Logs behalten
-                        const newLogs = [...prev, data];
-                        if (newLogs.length > 50) return newLogs.slice(newLogs.length - 50);
-                        return newLogs;
-                    });
-                } catch (e) {
-                    console.error("Status Parse Error", e);
-                }
-            };
-
-            eventSource.onerror = (err) => {
-                console.log("Status Stream Verbindung verloren, reconnecting...", err);
-                setIsConnected(false);
-                eventSource.close();
-                // Retry nach 5s
-                retryTimeout = setTimeout(connect, 5000);
-            };
-        };
-
-        connect();
-
-        return () => {
-            if (eventSourceRef.current) eventSourceRef.current.close();
-            clearTimeout(retryTimeout);
-        };
-    }, []);
 
     // Auto-Scroll nach unten
     useEffect(() => {
@@ -62,8 +11,9 @@ const SystemStatusPanel = () => {
         }
     }, [logs, isExpanded]);
 
-    // Wenn keine Logs da sind, zeige nichts an (außer wir sind disconnected)
-    if (logs.length === 0 && isConnected) return null;
+    // Wenn keine Logs da sind, zeige nichts an (außer wir sind disconnected, dann vielleicht roten Punkt?)
+    // Wir zeigen es immer an, wenn es einmal connected war oder Logs da sind.
+    if (logs.length === 0 && !isConnected) return null;
 
     const lastLog = logs.length > 0 ? logs[logs.length - 1] : { message: "Warte auf Status...", type: "info" };
 

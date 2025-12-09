@@ -79,7 +79,14 @@ Die meisten Einstellungen können direkt über die Benutzeroberfläche unter "Ei
 
 ## Updates & Changelog
 
-*   **V1.3.2 (Aktuell):**
+*   **V1.3.3 (Aktuell):**
+    *   **Live-Monitoring:**
+        *   **System Status Panel:** Neues, minimierbares Panel am unteren Bildschirmrand zeigt Live-Statusmeldungen vom Backend (z.B. Start von Tests, Wiederholungsversuche, Serverwechsel).
+        *   **Echtzeit-Updates:** Die Testergebnis-Liste und Diagramme aktualisieren sich nun *sofort* automatisch, sobald ein Hintergrundtest abgeschlossen ist (kein Warten mehr auf den Intervall-Timer).
+    *   **Bugfixes:**
+        *   Behebung eines `ReferenceError` beim Laden der Anwendung.
+
+*   **V1.3.2:**
     *   **Refactoring & Performance:**
         *   **Modularisierung:** Umfangreiche Überarbeitung der Frontend-Architektur. Aufteilung der großen App-Komponente in spezialisierte Module (HistoryTable, Charts, Modals) für bessere Wartbarkeit.
     *   **Bugfixes & UX:**

@@ -423,7 +423,7 @@ async function runScheduledTest() {
       if (!needsRetry) {
           // Alles OK -> Normal speichern
           await saveResultPromise(attempt1);
-          broadcastStatus("Test erfolgreich abgeschlossen. Werte OK.", "success");
+          broadcastStatus("Test erfolgreich abgeschlossen. Werte OK.", "success", { action: 'refresh_history' });
       } else {
           // RETRY LOGIK
           broadcastStatus(`Werte unter Toleranz. Starte ${retryCount} Wiederholungen...`, "warning");
@@ -546,7 +546,7 @@ async function runScheduledTest() {
               timestamp: new Date().toISOString()
           });
           
-          broadcastStatus(`Testserie beendet. Aggregat (${retryStrategy}) gespeichert.`, "success");
+          broadcastStatus(`Testserie beendet. Aggregat (${retryStrategy}) gespeichert.`, "success", { action: 'refresh_history' });
       }
 
   } catch (err) {

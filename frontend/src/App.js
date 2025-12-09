@@ -72,6 +72,15 @@ function App() {
   // Toast Notification State
   const [notification, setNotification] = useState(null); // { message: '', type: 'success' | 'error' }
 
+  // System Status Logs (SSE) & Connection State
+  const [statusLogs, setStatusLogs] = useState([]);
+  const [isStatusConnected, setIsStatusConnected] = useState(false);
+  const eventSourceRef = React.useRef(null);
+  
+  // Refs für Zugriff innerhalb des EventListeners (Closure Trap vermeiden)
+  const viewRef = React.useRef(view);
+  const fetchHistoryRef = React.useRef(null);
+
   const showToast = useCallback((message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => {
@@ -409,8 +418,8 @@ function App() {
                 }
             } else if (data.type === 'done') {
                 setLastResult(data.result);
-                // Wenn wir im Dashboard sind, refresh. Sonst nix.
-                if (view === 'dashboard') fetchHistory(50);
+                // Immer refreshen nach Test
+                fetchHistory(view === 'dashboard' ? 200 : 0); 
                 
                 eventSource.close();
                 setLoading(false);
@@ -444,6 +453,68 @@ function App() {
 
 
 
+
+  useEffect(() => {
+      viewRef.current = view;
+      fetchHistoryRef.current = fetchHistory;
+  }, [view, fetchHistory]);
+
+  // SSE Connection
+  useEffect(() => {
+    let retryTimeout;
+
+    const connect = () => {
+        if (eventSourceRef.current) {
+            eventSourceRef.current.close();
+        }
+
+        const eventSource = new EventSource('/api/status/stream');
+        eventSourceRef.current = eventSource;
+
+        eventSource.onopen = () => {
+            setIsStatusConnected(true);
+        };
+
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                
+                // 1. Logs updaten
+                setStatusLogs(prev => {
+                    const newLogs = [...prev, data];
+                    if (newLogs.length > 50) return newLogs.slice(newLogs.length - 50);
+                    return newLogs;
+                });
+                
+                // 2. Auf Actions reagieren
+                if (data.action === 'refresh_history') {
+                    const currentView = viewRef.current;
+                    const fetchFn = fetchHistoryRef.current;
+                    if (fetchFn) {
+                        // Auto-Refresh auslösen
+                        fetchFn(currentView === 'dashboard' ? 200 : 0);
+                    }
+                }
+            } catch (e) {
+                console.error("Status Parse Error", e);
+            }
+        };
+
+        eventSource.onerror = (err) => {
+            // console.log("Status Stream Verbindung verloren, reconnecting...");
+            setIsStatusConnected(false);
+            eventSource.close();
+            retryTimeout = setTimeout(connect, 5000);
+        };
+    };
+
+    connect();
+
+    return () => {
+        if (eventSourceRef.current) eventSourceRef.current.close();
+        clearTimeout(retryTimeout);
+    };
+  }, []);
 
   const displayData = loading ? currentTestValues : (lastResult || { download: 0, upload: 0, ping: 0 });
   const resultCardTitle = loading ? 'Live Test läuft...' : 'Letztes Ergebnis';
@@ -876,7 +947,7 @@ function App() {
       )}
 
       {/* SYSTEM STATUS PANEL */}
-      <SystemStatusPanel />
+      <SystemStatusPanel logs={statusLogs} isConnected={isStatusConnected} />
     </div>
   );
 }
