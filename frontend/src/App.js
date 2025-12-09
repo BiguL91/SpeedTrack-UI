@@ -6,12 +6,13 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
   Filler
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { Line, Bar } from 'react-chartjs-2';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import './App.css';
 import packageJson from '../package.json';
@@ -21,6 +22,7 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
@@ -626,7 +628,7 @@ function App() {
     // Initial Load
     fetchSettings();
     if (view === 'dashboard') {
-        fetchHistory(50);
+        fetchHistory(200);
     } else {
         fetchHistory(0); // Alles laden
     }
@@ -634,7 +636,7 @@ function App() {
     // Auto Refresh nur im Dashboard
     const intervalId = setInterval(() => {
         if (!loading && view === 'dashboard') {
-            fetchHistory(50);
+            fetchHistory(200);
         }
     }, 30000); 
 
@@ -793,6 +795,40 @@ function App() {
   // Expanded Chart Daten (mit eigenem Limit)
   const expandedChartData = getChartData(expandedChartLimit);
 
+
+
+  const barOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+          legend: {
+              position: 'top',
+              labels: {
+                  color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#e0e0e0' : '#666'
+              }
+          },
+          title: {
+              display: false,
+          },
+      },
+      scales: {
+          x: {
+              stacked: true,
+              ticks: { color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#e0e0e0' : '#666' },
+              grid: { display: false }
+          },
+          y: {
+              stacked: true,
+              beginAtZero: true,
+              ticks: { 
+                  stepSize: 1, // Nur ganze Zahlen
+                  color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#e0e0e0' : '#666' 
+              },
+              grid: { color: theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#444' : '#ddd' }
+          }
+      }
+  };
+
   // Optionen für Geschwindigkeit
 
   // Optionen für Geschwindigkeit
@@ -913,6 +949,55 @@ function App() {
       return false;
   };
 
+  // Daten für Tests pro Tag (Stacked Bar Chart)
+  const getTestsPerDayData = () => {
+      // Wir nehmen alle verfügbaren History-Daten für die Übersicht
+      const dataMap = {}; // { 'dd.mm.yyyy': { pass: 0, fail: 0 } }
+
+      // Aggregation
+      // Sortiere chronologisch aufsteigend für die X-Achse
+      const sortedHistory = [...history].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+      sortedHistory.forEach(test => {
+          // Ignorierte Tests ausschließen? Oder explizit als grau anzeigen? 
+          // Wir schließen sie aus, wie in der Statistik.
+          if (test.excludeFromStats === 1) return;
+
+          const dateKey = new Date(test.timestamp).toLocaleDateString();
+          if (!dataMap[dateKey]) dataMap[dateKey] = { pass: 0, fail: 0 };
+
+          if (isBelowThreshold(test)) {
+              dataMap[dateKey].fail++;
+          } else {
+              dataMap[dateKey].pass++;
+          }
+      });
+
+      const labels = Object.keys(dataMap);
+      const passData = labels.map(date => dataMap[date].pass);
+      const failData = labels.map(date => dataMap[date].fail);
+
+      return {
+          labels,
+          datasets: [
+              {
+                  label: 'Bestanden',
+                  data: passData,
+                  backgroundColor: '#2ecc71',
+                  stack: 'Stack 0',
+              },
+              {
+                  label: 'Nicht Bestanden',
+                  data: failData,
+                  backgroundColor: '#e74c3c',
+                  stack: 'Stack 0',
+              }
+          ]
+      };
+  };
+
+  const testsPerDayData = getTestsPerDayData();
+
   // --- RENDER HELPERS ---
   const renderDashboard = () => (
       <>
@@ -1013,61 +1098,71 @@ function App() {
                         </div>
                     </div>
                     
-        {/* CHARTS WRAPPER */}
-        {history.length > 0 && (
-            <div className="charts-row">
-            <div 
-                className="card chart-container" 
-                style={{display: 'flex', flexDirection: 'column', position: 'relative', cursor: 'pointer'}}
-                onClick={() => setExpandedChart('speed')}
-                title="Klicken zum Vergrößern"
-            >
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                    <h3 style={{margin: 0, fontSize: '1.1rem', color: 'var(--text-color)'}}>Geschwindigkeit</h3>
-                    <div style={{display: 'flex', gap: '5px'}} onClick={(e) => e.stopPropagation()}>
-                        {[5, 10, 20, 50].map(limit => (
-                            <button 
-                                key={limit}
-                                onClick={() => setChartDataLimit(limit)}
-                                style={{
-                                    background: chartDataLimit === limit ? 'var(--primary-gradient)' : 'transparent',
-                                    color: chartDataLimit === limit ? 'white' : 'var(--text-secondary)',
-                                    border: '1px solid ' + (chartDataLimit === limit ? 'transparent' : 'var(--border-color)'),
-                                    padding: '2px 8px',
-                                    borderRadius: '10px',
-                                    cursor: 'pointer',
-                                    fontSize: '0.75rem',
-                                    fontWeight: '600',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                {limit === 0 ? 'Alle' : limit}
-                            </button>
-                        ))}
+                {/* CHARTS WRAPPER */}
+                {history.length > 0 && (
+                    <>
+                    <div className="charts-row">
+                    <div 
+                        className="card chart-container" 
+                        style={{display: 'flex', flexDirection: 'column', position: 'relative', cursor: 'pointer'}}
+                        onClick={() => setExpandedChart('speed')}
+                        title="Klicken zum Vergrößern"
+                    >
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+                            <h3 style={{margin: 0, fontSize: '1.1rem', color: 'var(--text-color)'}}>Geschwindigkeit</h3>
+                            <div style={{display: 'flex', gap: '5px'}} onClick={(e) => e.stopPropagation()}>
+                                {[5, 10, 20, 50].map(limit => (
+                                    <button 
+                                        key={limit}
+                                        onClick={() => setChartDataLimit(limit)}
+                                        style={{
+                                            background: chartDataLimit === limit ? 'var(--primary-gradient)' : 'transparent',
+                                            color: chartDataLimit === limit ? 'white' : 'var(--text-secondary)',
+                                            border: '1px solid ' + (chartDataLimit === limit ? 'transparent' : 'var(--border-color)'),
+                                            padding: '2px 8px',
+                                            borderRadius: '10px',
+                                            cursor: 'pointer',
+                                            fontSize: '0.75rem',
+                                            fontWeight: '600',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        {limit === 0 ? 'Alle' : limit}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div style={{flex: 1, minHeight: 0}}>
+                            <Line key={`speed-${theme}`} options={speedOptions} data={dashboardChartData.speedData} />
+                        </div>
                     </div>
-                </div>
-                <div style={{flex: 1, minHeight: 0}}>
-                    <Line key={`speed-${theme}`} options={speedOptions} data={dashboardChartData.speedData} />
-                </div>
-            </div>
-            <div 
-                className="card chart-container" 
-                style={{display: 'flex', flexDirection: 'column', position: 'relative', cursor: 'pointer'}}
-                onClick={() => setExpandedChart('ping')}
-                title="Klicken zum Vergrößern"
-            >
-                <div style={{marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                     <h3 style={{margin: 0, fontSize: '1.1rem', color: 'var(--text-color)'}}>Ping</h3>
-                </div>
-                <div style={{flex: 1, minHeight: 0}}>
-                    <Line key={`ping-${theme}`} options={pingOptions} data={dashboardChartData.pingData} />
-                </div>
-            </div>
-            </div>
-        )}
-
-                {/* LIST CARD (SMALLER) */}
-
+                    <div 
+                        className="card chart-container" 
+                        style={{display: 'flex', flexDirection: 'column', position: 'relative', cursor: 'pointer'}}
+                        onClick={() => setExpandedChart('ping')}
+                        title="Klicken zum Vergrößern"
+                    >
+                        <div style={{marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                             <h3 style={{margin: 0, fontSize: '1.1rem', color: 'var(--text-color)'}}>Ping</h3>
+                        </div>
+                        <div style={{flex: 1, minHeight: 0}}>
+                            <Line key={`ping-${theme}`} options={pingOptions} data={dashboardChartData.pingData} />
+                        </div>
+                    </div>
+                    </div> {/* Ende charts-row */}
+        
+                    <div className="card chart-container" style={{display: 'flex', flexDirection: 'column', position: 'relative', marginTop: '20px'}}>
+                        <div style={{marginBottom: '15px'}}>
+                             <h3 style={{margin: 0, fontSize: '1.1rem', color: 'var(--text-color)'}}>Tests pro Tag</h3>
+                        </div>
+                        <div style={{flex: 1, minHeight: 0}}>
+                            <Bar key={`bar-${theme}`} options={barOptions} data={testsPerDayData} />
+                        </div>
+                    </div>
+                    </>
+                )}
+        
+                        {/* LIST CARD (SMALLER) */}
                 <div className="card">
 
                     <div className="list-header-row">
