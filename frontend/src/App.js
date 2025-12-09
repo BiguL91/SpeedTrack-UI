@@ -2189,7 +2189,7 @@ function App() {
 
         
 
-                                                                                                                                                                                        <div className="row-metric download">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div className="row-metric download">
 
         
 
@@ -2205,7 +2205,7 @@ function App() {
 
         
 
-                                                                                            
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <span className="icon">⬇</span> 
 
         
 
@@ -2221,7 +2221,7 @@ function App() {
 
         
 
-                                                                                                                                                                                            <span style={{
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <span style={{
 
         
 
@@ -2237,7 +2237,7 @@ function App() {
 
         
 
-                                                                                                                                                                                                color: (parseFloat(expectedDownload) > 0 && detail.download < parseFloat(expectedDownload) * (1 - parseFloat(tolerance) / 100)) ? '#e74c3c' : 'inherit'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        color: (parseFloat(expectedDownload) > 0 && detail.download < parseFloat(expectedDownload) * (1 - parseFloat(tolerance) / 100)) ? '#e74c3c' : 'inherit'
 
         
 
@@ -2253,7 +2253,7 @@ function App() {
 
         
 
-                                                                                                                                                                                            }}>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }}>
 
         
 
@@ -2269,7 +2269,7 @@ function App() {
 
         
 
-                                                                                                                                                                                                {detail.download.toFixed(0)} 
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        {detail.download.toFixed(0)} 
 
         
 
@@ -2285,7 +2285,7 @@ function App() {
 
         
 
-                                                                                                                                                                                            </span>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </span>
 
         
 
@@ -2301,7 +2301,7 @@ function App() {
 
         
 
-                                                                                                                                                                                            <small>MBit/s</small>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <small>MBit/s</small>
 
         
 
@@ -2317,7 +2317,7 @@ function App() {
 
         
 
-                                                                                            
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div>
 
         
 
@@ -2333,7 +2333,7 @@ function App() {
 
         
 
-                                                                                                                                                                                        </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
 
         
 
@@ -2349,7 +2349,7 @@ function App() {
 
         
 
-                                                                                            
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div className="row-metric upload">
 
         
 
@@ -2365,7 +2365,7 @@ function App() {
 
         
 
-                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <span className="icon">⬆</span> 
 
         
 
@@ -2381,7 +2381,7 @@ function App() {
 
         
 
-                                                                                            
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <span style={{
 
         
 
@@ -2397,7 +2397,7 @@ function App() {
 
         
 
-                                                                                                                                                                                        <div className="row-metric upload">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        color: (parseFloat(expectedUpload) > 0 && detail.upload < parseFloat(expectedUpload) * (1 - parseFloat(tolerance) / 100)) ? '#e74c3c' : 'inherit'
 
         
 
@@ -2413,7 +2413,7 @@ function App() {
 
         
 
-                                                                                            
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }}>
 
         
 
@@ -2429,7 +2429,7 @@ function App() {
 
         
 
-                                                                                                                                                                                            <span style={{
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        {detail.upload.toFixed(0)} 
 
         
 
@@ -2445,7 +2445,7 @@ function App() {
 
         
 
-                                                                                                                                                                                                color: (parseFloat(expectedUpload) > 0 && detail.upload < parseFloat(expectedUpload) * (1 - parseFloat(tolerance) / 100)) ? '#e74c3c' : 'inherit'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </span>
 
         
 
@@ -2461,7 +2461,7 @@ function App() {
 
         
 
-                                                                                                                                                                                            }}>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <small>MBit/s</small>
 
         
 
@@ -2477,7 +2477,7 @@ function App() {
 
         
 
-                                                                                                                                                                                                {detail.upload.toFixed(0)} 
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div>
 
         
 
@@ -2493,7 +2493,7 @@ function App() {
 
         
 
-                                                                                                                                                                                            </span>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
 
         
 
@@ -2509,7 +2509,7 @@ function App() {
 
         
 
-                                                                                                                                                                                            <small>MBit/s</small>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div className="row-metric ping">
 
         
 
@@ -2525,7 +2525,7 @@ function App() {
 
         
 
-                                                                                            
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <span className="icon">⚡</span> {detail.ping.toFixed(0)} <small>ms</small>
 
         
 
@@ -2541,39 +2541,7 @@ function App() {
 
         
 
-                                                                                                                                                                                        </div>
-
-        
-
-                    
-
-        
-
-                                                                                            
-
-        
-
-                    
-
-        
-
-                                                                                            <div className="row-metric ping">
-
-        
-
-                    
-
-        
-
-                                                                                                {detail.ping.toFixed(0)} <small>ms</small>
-
-        
-
-                    
-
-        
-
-                                                                                            </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div>
 
         
 
@@ -2825,6 +2793,7 @@ function App() {
                                         </div>
 
                                         <div className="row-metric download">
+                                            <span className="icon">⬇</span> 
                                             <span style={{
                                                 color: (parseFloat(expectedDownload) > 0 && detail.download < parseFloat(expectedDownload) * (1 - parseFloat(tolerance) / 100)) ? '#e74c3c' : 'inherit'
                                             }}>
@@ -2834,6 +2803,7 @@ function App() {
                                         </div>
                                         
                                         <div className="row-metric upload">
+                                            <span className="icon">⬆</span> 
                                             <span style={{
                                                 color: (parseFloat(expectedUpload) > 0 && detail.upload < parseFloat(expectedUpload) * (1 - parseFloat(tolerance) / 100)) ? '#e74c3c' : 'inherit'
                                             }}>
@@ -2843,7 +2813,7 @@ function App() {
                                         </div>
                                         
                                         <div className="row-metric ping">
-                                            {detail.ping.toFixed(0)} <small>ms</small>
+                                            <span className="icon">⚡</span> {detail.ping.toFixed(0)} <small>ms</small>
                                         </div>
                                         
                                         <div className="row-packet-loss">{detail.packetLoss ? detail.packetLoss.toFixed(2) : '0.00'}%</div>
