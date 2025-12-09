@@ -1772,8 +1772,9 @@ function App() {
                             type="time" 
                             value={startTime}
                             onChange={(e) => setStartTime(e.target.value)}
+                            style={{width: '100%', padding: '10px', marginBottom: '0'}}
                         />
-                        <div style={{fontSize: '0.8rem', color: '#666'}}>
+                        <div style={{fontSize: '0.8rem', color: '#666', marginTop: '0'}}>
                             Der Test-Zyklus orientiert sich an dieser Zeit.
                         </div>
 
@@ -1818,9 +1819,9 @@ function App() {
                                 max="100"
                                 value={tolerance}
                                 onChange={(e) => setTolerance(e.target.value)}
-                                style={{width: '100%', padding: '10px'}}
+                                style={{width: '100%', padding: '10px', marginBottom: '0'}}
                             />
-                            <div style={{fontSize: '0.8rem', color: '#666'}}>
+                            <div style={{fontSize: '0.8rem', color: '#666', marginTop: '0'}}>
                                 Abweichung, ab der wiederholt wird (z.B. 10%).
                             </div>
                         </div>
@@ -1834,9 +1835,9 @@ function App() {
                                     max="5"
                                     value={retryCount}
                                     onChange={(e) => setRetryCount(e.target.value)}
-                                    style={{width: '100%', padding: '10px'}}
+                                    style={{width: '100%', padding: '10px', marginBottom: '0'}}
                                 />
-                                <div style={{fontSize: '0.8rem', color: '#666'}}>
+                                <div style={{fontSize: '0.8rem', color: '#666', marginTop: '0'}}>
                                     (Max. 1-5)
                                 </div>
                             </div>
@@ -1848,9 +1849,9 @@ function App() {
                                     max="60"
                                     value={retryDelay}
                                     onChange={(e) => setRetryDelay(e.target.value)}
-                                    style={{width: '100%', padding: '10px'}}
+                                    style={{width: '100%', padding: '10px', marginBottom: '0'}}
                                 />
-                                <div style={{fontSize: '0.8rem', color: '#666'}}>
+                                <div style={{fontSize: '0.8rem', color: '#666', marginTop: '0'}}>
                                     (5-60 Sekunden)
                                 </div>
                             </div>
@@ -1877,9 +1878,9 @@ function App() {
                             min="0"
                             value={retentionPeriod}
                             onChange={(e) => setRetentionPeriod(e.target.value)}
-                            style={{width: '100%', padding: '10px'}}
+                            style={{width: '100%', padding: '10px', marginBottom: '0'}}
                         />
-                        <div style={{fontSize: '0.8rem', color: '#666'}}>
+                        <div style={{fontSize: '0.8rem', color: '#666', marginTop: '0'}}>
                             Alte Tests werden automatisch gelöscht. 0 = Nie löschen.
                         </div>
                     </div>
