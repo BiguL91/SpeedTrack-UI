@@ -768,7 +768,7 @@ app.get('/api/export', (req, res) => {
       return;
     }
 
-    let csvContent = 'ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country,Server ID,Group ID,Is Aggregate,Is Manual,Exclude From Stats\n';
+    let csvContent = 'ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country,Server ID,Group ID,Is Aggregate,Is Manual,Exclude From Stats,Jitter (ms),Server Host,Server Port,Server IP,Download Elapsed (ms),Upload Elapsed (ms),Is VPN,External IP,Result URL,Download Bytes,Upload Bytes\n';
     
     rows.forEach(row => {
       const escape = (text) => text ? "" + text.toString().split("\"").join("\"\"") + "" : "";
@@ -783,11 +783,22 @@ app.get('/api/export', (req, res) => {
         escape(row.isp),
         escape(row.serverLocation),
         escape(row.serverCountry),
-        row.serverId || '', // Server ID
-        escape(row.groupId || ''), // Group ID
-        row.isAggregate || 0, // Is Aggregate
-        row.isManual || 0, // Is Manual
-        row.excludeFromStats || 0 // Exclude From Stats
+        row.serverId || '',
+        escape(row.groupId || ''),
+        row.isAggregate || 0,
+        row.isManual || 0,
+        row.excludeFromStats || 0,
+        row.jitter || 0,
+        escape(row.serverHost),
+        row.serverPort || '',
+        escape(row.serverIp),
+        row.downloadElapsed || '',
+        row.uploadElapsed || '',
+        row.isVpn || 0,
+        escape(row.externalIp),
+        escape(row.resultUrl),
+        row.downloadBytes || 0,
+        row.uploadBytes || 0
       ].join(',') + '\n';
     });
 
@@ -821,8 +832,9 @@ app.post('/api/import', upload.single('file'), (req, res) => {
                 
                 const stmt = db.prepare(`
                     INSERT OR REPLACE INTO results (
-                        id, timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, serverId, groupId, isAggregate, isManual, excludeFromStats
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        id, timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, serverId, groupId, isAggregate, isManual, excludeFromStats,
+                        jitter, serverHost, serverPort, serverIp, downloadElapsed, uploadElapsed, isVpn, externalIp, resultUrl, downloadBytes, uploadBytes
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `);
 
                 let errorOccurred = false;
@@ -831,7 +843,6 @@ app.post('/api/import', upload.single('file'), (req, res) => {
                     if (errorOccurred) return;
 
                     // Mapping CSV Header -> DB Columns
-                    // CSV: ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country,Server ID,Group ID,Is Aggregate,Is Manual,Exclude From Stats
                     const id = row['ID'];
                     const timestamp = row['Timestamp'];
                     const ping = parseFloat(row['Ping (ms)']) || 0;
@@ -839,16 +850,31 @@ app.post('/api/import', upload.single('file'), (req, res) => {
                     const upload = parseFloat(row['Upload (Mbps)']) || 0;
                     const packetLoss = parseFloat(row['Packet Loss (%)']) || 0;
                     const isp = row['ISP'];
-                    const server = row['Server']; // Location
+                    const server = row['Server'];
                     const country = row['Server Country'];
                     const serverId = row['Server ID'] || null;
                     const groupId = row['Group ID'] || null;
                     const isAggregate = parseInt(row['Is Aggregate']) || 0;
                     const isManual = parseInt(row['Is Manual']) || 0;
                     const excludeFromStats = parseInt(row['Exclude From Stats']) || 0;
+                    
+                    const jitter = parseFloat(row['Jitter (ms)']) || 0;
+                    const serverHost = row['Server Host'] || null;
+                    const serverPort = parseInt(row['Server Port']) || null;
+                    const serverIp = row['Server IP'] || null;
+                    const downloadElapsed = parseInt(row['Download Elapsed (ms)']) || null;
+                    const uploadElapsed = parseInt(row['Upload Elapsed (ms)']) || null;
+                    const isVpn = parseInt(row['Is VPN']) || 0;
+                    const externalIp = row['External IP'] || null;
+                    const resultUrl = row['Result URL'] || null;
+                    const downloadBytes = parseInt(row['Download Bytes']) || 0;
+                    const uploadBytes = parseInt(row['Upload Bytes']) || 0;
 
                     if (id && timestamp) {
-                        stmt.run([id, timestamp, ping, download, upload, packetLoss, isp, server, country, serverId, groupId, isAggregate, isManual, excludeFromStats], (err) => {
+                        stmt.run([
+                            id, timestamp, ping, download, upload, packetLoss, isp, server, country, serverId, groupId, isAggregate, isManual, excludeFromStats,
+                            jitter, serverHost, serverPort, serverIp, downloadElapsed, uploadElapsed, isVpn, externalIp, resultUrl, downloadBytes, uploadBytes
+                        ], (err) => {
                             if (err) {
                                 console.error("Import Insert Error:", err);
                                 errorOccurred = true;
