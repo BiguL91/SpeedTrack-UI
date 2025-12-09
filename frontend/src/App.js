@@ -61,6 +61,10 @@ function App() {
   
   // View State: 'dashboard' oder 'history'
   const [view, setView] = useState('dashboard');
+  
+  // Filter State
+  const [filterSource, setFilterSource] = useState('all'); // 'all', 'manual', 'auto', 'aggregate'
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'included', 'excluded'
 
   // Einstellung für Datenvorhaltung (in Tagen, 0 = nie löschen)
   const [retentionPeriod, setRetentionPeriod] = useState('0');
@@ -543,6 +547,30 @@ function App() {
     });
   };
 
+  // Filter Logik
+  const getFilteredHistory = () => {
+      return history.filter(test => {
+          // 1. Basis-Filter (Was ist ein "Haupteintrag"?)
+          // Zeige Aggregate, Manuelle Tests oder Tests ohne Gruppe.
+          // Verstecke die Einzelversuche einer Retry-Serie (die haben groupId aber isAggregate=0),
+          // ES SEI DENN, wir wollen explizit "Alles" sehen (könnte man machen, aber hier bleiben wir bei der View-Logik).
+          // Wir behalten die bisherige Logik bei: Nur "Ergebnisse" anzeigen.
+          const isMainItem = test.isAggregate === 1 || !test.groupId || test.isManual === 1;
+          if (!isMainItem) return false;
+
+          // 2. Source Filter
+          if (filterSource === 'manual' && test.isManual !== 1) return false;
+          if (filterSource === 'auto' && test.isManual === 1) return false;
+          if (filterSource === 'aggregate' && test.isAggregate !== 1) return false;
+
+          // 3. Status Filter
+          if (filterStatus === 'included' && test.excludeFromStats === 1) return false;
+          if (filterStatus === 'excluded' && test.excludeFromStats !== 1) return false;
+
+          return true;
+      });
+  };
+
   const fetchHistory = useCallback(async (limit = 0) => {
     try {
       const url = limit > 0 ? `/api/history?limit=${limit}` : '/api/history';
@@ -932,24 +960,41 @@ function App() {
 
                         <div className="list-header-left">
 
-                            <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte {visibleCount} Tests</h2>
+                            <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte Tests</h2>
+
+                            <div style={{display: 'flex', gap: '10px', marginLeft: '10px'}}>
+                                <select 
+                                    value={filterSource} 
+                                    onChange={(e) => setFilterSource(e.target.value)}
+                                    style={{padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--border-color)', background: 'var(--metric-bg)', color: 'var(--text-color)', fontSize: '0.85rem', cursor: 'pointer'}}
+                                >
+                                    <option value="all">Alle Typen</option>
+                                    <option value="auto">🤖 Automatisch</option>
+                                    <option value="manual">👤 Manuell</option>
+                                    <option value="aggregate">📦 Nur Durchschnitt</option>
+                                </select>
+
+                                <select 
+                                    value={filterStatus} 
+                                    onChange={(e) => setFilterStatus(e.target.value)}
+                                    style={{padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--border-color)', background: 'var(--metric-bg)', color: 'var(--text-color)', fontSize: '0.85rem', cursor: 'pointer'}}
+                                >
+                                    <option value="all">Jeder Status</option>
+                                    <option value="included">✅ Gewertet</option>
+                                    <option value="excluded">🚫 Ignoriert</option>
+                                </select>
+                            </div>
 
                             <input 
 
                                 type="range" 
-
                                 min="3" 
-
                                 max="50" 
-
                                 value={visibleCount} 
-
                                 onChange={(e) => setVisibleCount(Number(e.target.value))}
-
                                 className="range-slider"
-
                                 title="Anzahl ändern"
-
+                                style={{marginLeft: '15px'}}
                             />
 
                         </div>
@@ -957,111 +1002,43 @@ function App() {
                         <div style={{display:'flex', gap: '15px', alignItems: 'center'}}>
 
                             <button 
-
                                 onClick={() => setView('history')}
-
                                 className="export-link" 
-
                             >
-
                                 📜 Historie (Alle)
-
                             </button>
-
                             <input 
-
                                 type="file" 
-
                                 accept=".csv" 
-
                                 ref={fileInputRef} 
-
                                 style={{display: 'none'}} 
-
                                 onChange={handleFileUpload} 
-
                             />
-
                             <button 
-
                                 onClick={handleImportClick}
-
                                 className="export-link"
-
                             >
-
-                                CSV Import <span className="icon-import">⬆</span>
-
+                                Import <span className="icon-import">⬆</span>
                             </button>
-
                             <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
-
-                                CSV Export <span className="icon-export">⬇</span>
-
+                                Export <span className="icon-export">⬇</span>
                             </a>
-
                         </div>
-
                     </div>
-
                     
-
                                                     <div className="recent-tests-table-header">
-
-                    
-
                                                         <div className="header-id" style={{width: '120px', textAlign: 'left'}}>ID</div>
-
-                    
-
                                                         <div className="header-time">Uhrzeit</div>
-
-                    
-
                                                         <div className="header-server">Server</div>
-
-                    
-
                                                         <div className="header-download">Download</div>
-
-                    
-
                                                         <div className="header-upload">Upload</div>
-
-                    
-
                                                         <div className="header-ping">Ping</div>
-
-                    
-
                                                     </div>
-
                     
-
-                                        
-
-                    
-
-                                                    {history.length > 0 ? (
-
-                    
-
+                                                    {getFilteredHistory().length > 0 ? (
                                                         <ul className="recent-tests-list"> 
-
-                    
-
-                                                            {history
-
-                    
-
-                                                                .filter(test => test.isAggregate === 1 || !test.groupId || test.isManual === 1)
-
-                    
-
+                                                            {getFilteredHistory()
                                                                 .slice(0, visibleCount)
-
-                    
-
                                                                 .map((test, index) => {
 
                     
@@ -1626,7 +1603,31 @@ function App() {
                 >
                     ⬅ Zurück
                 </button>
-                <h2 style={{margin: 0, border: 'none'}}>Gesamte Historie ({history.length} Einträge)</h2>
+                <h2 style={{margin: 0, border: 'none'}}>Gesamte Historie ({getFilteredHistory().length} Einträge)</h2>
+                
+                <div style={{display: 'flex', gap: '10px'}}>
+                    <select 
+                        value={filterSource} 
+                        onChange={(e) => setFilterSource(e.target.value)}
+                        style={{padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--border-color)', background: 'var(--metric-bg)', color: 'var(--text-color)', fontSize: '0.85rem', cursor: 'pointer'}}
+                    >
+                        <option value="all">Alle Typen</option>
+                        <option value="auto">🤖 Automatisch</option>
+                        <option value="manual">👤 Manuell</option>
+                        <option value="aggregate">📦 Nur Durchschnitt</option>
+                    </select>
+
+                    <select 
+                        value={filterStatus} 
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        style={{padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--border-color)', background: 'var(--metric-bg)', color: 'var(--text-color)', fontSize: '0.85rem', cursor: 'pointer'}}
+                    >
+                        <option value="all">Jeder Status</option>
+                        <option value="included">✅ Gewertet</option>
+                        <option value="excluded">🚫 Ignoriert</option>
+                    </select>
+                </div>
+
                 <div style={{display:'flex', gap: '15px', alignItems: 'center'}}>
                     <input 
                         type="file" 
@@ -1639,10 +1640,10 @@ function App() {
                                                                 onClick={handleImportClick}
                                                                 className="export-link" 
                                                             >
-                                                                CSV Import <span className="icon-import">⬆</span>
+                                                                Import <span className="icon-import">⬆</span>
                                                             </button>
                                                             <a href="/api/export" target="_blank" rel="noopener noreferrer" className="export-link">
-                                                            CSV Export <span className="icon-export">⬇</span>
+                                                            Export <span className="icon-export">⬇</span>
                                                             </a>                </div>
           </div>
 
@@ -1658,8 +1659,7 @@ function App() {
             </div>
 
             <ul className="recent-tests-list"> 
-                {history
-                    .filter(test => test.isAggregate === 1 || !test.groupId || test.isManual === 1)
+                {getFilteredHistory()
                     .map((test, index) => {
                         const isGroup = test.isAggregate === 1;
                         const isExpanded = isGroup && expandedGroupId === test.groupId;
