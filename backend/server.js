@@ -172,10 +172,15 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 
 
-const runSpeedtestPromise = () => {
+const runSpeedtestPromise = (serverId = null) => {
     return new Promise((resolve, reject) => {
+        let cmd = 'speedtest --format=json --accept-license --accept-gdpr';
+        if (serverId) {
+            cmd += ` -s ${serverId}`;
+        }
+
         // Timeout 240s (4 Minuten)
-        exec('speedtest --format=json --accept-license --accept-gdpr', { timeout: 240000 }, (error, stdout, stderr) => {
+        exec(cmd, { timeout: 240000 }, (error, stdout, stderr) => {
             if (error) {
                 // Prüfen ob es ein Timeout war
                 if (error.killed) {
@@ -352,16 +357,41 @@ async function runScheduledTest() {
       const retryDelay = parseInt(settings.retry_delay || 30);
 
       const retryStrategy = settings.retry_strategy || 'AVG';
+      const serverBlacklistStr = settings.server_blacklist || '';
 
+      let targetServerId = null;
 
+      if (serverBlacklistStr) {
+          const blacklist = serverBlacklistStr.split(',').map(s => s.trim());
+          try {
+              // Hole Server Liste
+              const serverList = await new Promise((resolve, reject) => {
+                  exec('speedtest -L --format=json --accept-license --accept-gdpr', (err, stdout) => {
+                       if (err) return reject(err);
+                       try { resolve(JSON.parse(stdout)); } catch(e) { reject(e); }
+                  });
+              });
+              
+              if (serverList && serverList.servers) {
+                   const available = serverList.servers.filter(s => !blacklist.includes(String(s.id)));
+                   if (available.length > 0) {
+                       targetServerId = available[0].id;
+                       console.log(`[Scheduled] Blacklist aktiv. Wähle Server ID: ${targetServerId} (${available[0].name})`);
+                   } else {
+                       console.warn("[Scheduled] Alle Server auf der Blacklist! Nutze Standard-Auswahl.");
+                   }
+              }
+          } catch (e) {
+              console.error("Fehler bei Server-Auswahl (Blacklist):", e);
+          }
+      }
 
       // 2. Ersten Test ausführen
-
       let attempt1;
 
       try {
 
-          attempt1 = await runSpeedtestPromise();
+          attempt1 = await runSpeedtestPromise(targetServerId);
 
       } catch (e) {
 
@@ -433,7 +463,7 @@ async function runScheduledTest() {
 
                   console.log(`Starte Retry ${i+1}/${retryCount}...`);
 
-                  const retryResult = await runSpeedtestPromise();
+                  const retryResult = await runSpeedtestPromise(targetServerId);
 
                   await saveResultPromise(retryResult, { groupId });
 
@@ -601,7 +631,8 @@ app.get('/api/settings', (req, res) => {
 app.post('/api/settings', (req, res) => {
     const { 
         cron_schedule, retention_period, 
-        expected_download, expected_upload, tolerance, retry_count, retry_delay, retry_strategy 
+        expected_download, expected_upload, tolerance, retry_count, retry_delay, retry_strategy,
+        server_blacklist
     } = req.body;
     
     let updates = [];
@@ -644,6 +675,7 @@ app.post('/api/settings', (req, res) => {
     }
 
     if (retry_strategy !== undefined) addUpdate('retry_strategy', retry_strategy);
+    if (server_blacklist !== undefined) addUpdate('server_blacklist', server_blacklist);
 
     if (updates.length === 0) {
         return res.status(400).json({ error: "Keine Einstellungen zum Speichern bereitgestellt." });

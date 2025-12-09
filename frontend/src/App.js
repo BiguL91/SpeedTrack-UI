@@ -80,6 +80,7 @@ function App() {
   const [retryCount, setRetryCount] = useState('3');
   const [retryDelay, setRetryDelay] = useState('30');
   const [retryStrategy, setRetryStrategy] = useState('AVG');
+  const [serverBlacklist, setServerBlacklist] = useState(''); // Kommaseparierte Server IDs
 
   // Confirm Flow State: null -> 'backup' -> 'delete'
   const [confirmStep, setConfirmStep] = useState(null);
@@ -116,6 +117,39 @@ function App() {
           }
       } catch (err) {
           showToast("Fehler beim Aktualisieren: " + err.message, "error");
+      }
+  };
+  
+  // Funktion um Server zu Blacklisten (ID hinzufügen/entfernen)
+  const toggleServerBlacklist = async (serverId) => {
+      if (!serverId) return;
+      const idStr = String(serverId);
+      let list = serverBlacklist.split(',').map(s => s.trim()).filter(s => s !== '');
+      
+      let newList;
+      let msg;
+      
+      if (list.includes(idStr)) {
+          // Entfernen
+          newList = list.filter(s => s !== idStr);
+          msg = "Server von Blacklist entfernt. ✅";
+      } else {
+          // Hinzufügen
+          newList = [...list, idStr];
+          msg = "Server zu Blacklist hinzugefügt. 🚫";
+      }
+      
+      const newBlacklistStr = newList.join(', ');
+      
+      try {
+          // Wir speichern nur diese eine Einstellung sofort
+          await axios.post('/api/settings', { 
+              server_blacklist: newBlacklistStr
+          });
+          setServerBlacklist(newBlacklistStr);
+          showToast(msg, "success");
+      } catch (err) {
+          showToast("Fehler beim Speichern der Blacklist: " + err.message, "error");
       }
   };
 
@@ -374,6 +408,7 @@ function App() {
         setRetryCount(response.data.retry_count);
         setRetryDelay(response.data.retry_delay);
         setRetryStrategy(response.data.retry_strategy);
+        setServerBlacklist(response.data.server_blacklist || '');
     } catch (err) {
         console.error("Fehler beim Laden der Einstellungen", err);
     }
@@ -393,7 +428,8 @@ function App() {
             tolerance: tolerance,
             retry_count: retryCount,
             retry_delay: retryDelay,
-            retry_strategy: retryStrategy
+            retry_strategy: retryStrategy,
+            server_blacklist: serverBlacklist
         });
         
         setCronSchedule(newCron);
@@ -2546,7 +2582,7 @@ function App() {
           opacity: 0.7
       }}>
           <div>Version {packageJson.version}</div>
-          <div style={{fontSize: '0.7rem', marginTop: '5px'}}>Created with Gemini</div>
+          <div style={{fontSize: '0.7rem', marginTop: '5px'}}>Created with support from Gemini</div>
       </footer>
 
       {/* MANUAL RESULT MODAL */}
@@ -2836,6 +2872,20 @@ function App() {
                                     <option value="MAX">Maximum (Best Case)</option>
                                 </select>
                         </div>
+
+                        <div style={{marginTop: '15px'}}>
+                                <label>Server Blacklist (IDs, kommasepariert):</label>
+                                <input 
+                                    type="text" 
+                                    value={serverBlacklist} 
+                                    onChange={(e) => setServerBlacklist(e.target.value)}
+                                    style={{width: '100%', padding: '10px', marginTop: '5px'}}
+                                    placeholder="z.B. 1234, 5678"
+                                />
+                                <div style={{fontSize: '0.8rem', color: '#666', marginTop: '0'}}>
+                                    Diese Server werden bei automatischen Tests ignoriert.
+                                </div>
+                        </div>
                     </div>
 
                     <div className="form-group" style={{marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '20px'}}>
@@ -2988,7 +3038,7 @@ function App() {
                     <div style={{fontFamily: 'monospace'}}>{selectedTest.serverIp || '-'}</div>
                 </div>
                 
-                <div className="detail-group" style={{gridColumn: '1 / -1', marginTop: '20px', display: 'flex', justifyContent: 'center'}}>
+                <div className="detail-group" style={{gridColumn: '1 / -1', marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center'}}>
                     <button 
                         className="modal-button"
                         style={{
@@ -3003,6 +3053,23 @@ function App() {
                             : '🚫 Aus Statistik ausschließen'
                         }
                     </button>
+
+                    {selectedTest.serverId && (
+                        <button 
+                            className="modal-button"
+                            style={{
+                                background: serverBlacklist.split(',').map(s=>s.trim()).includes(String(selectedTest.serverId)) ? '#2ecc71' : '#e74c3c', // Grün zum Entfernen, Rot zum Hinzufügen (Warnung)
+                                color: 'white',
+                                width: '100%'
+                            }}
+                            onClick={() => toggleServerBlacklist(selectedTest.serverId)}
+                        >
+                            {serverBlacklist.split(',').map(s=>s.trim()).includes(String(selectedTest.serverId))
+                                ? '✅ Von Blacklist entfernen' 
+                                : '🚫 Server dauerhaft ignorieren'
+                            }
+                        </button>
+                    )}
                 </div>
             </div>
           </div>
