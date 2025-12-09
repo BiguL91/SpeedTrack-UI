@@ -65,6 +65,8 @@ function App() {
   // Filter State
   const [filterSource, setFilterSource] = useState('all'); // 'all', 'manual', 'auto', 'aggregate'
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'included', 'excluded'
+  const [filterResult, setFilterResult] = useState('all'); // 'all', 'pass', 'fail'
+  const [filterTime, setFilterTime] = useState('all'); // 'all', 'today', 'yesterday', 'week', 'month'
 
   // Einstellung für Datenvorhaltung (in Tagen, 0 = nie löschen)
   const [retentionPeriod, setRetentionPeriod] = useState('0');
@@ -571,6 +573,34 @@ function App() {
           if (filterStatus === 'included' && test.excludeFromStats === 1) return false;
           if (filterStatus === 'excluded' && test.excludeFromStats !== 1) return false;
 
+          // 4. Result Filter
+          if (filterResult !== 'all') {
+              const failed = isBelowThreshold(test);
+              if (filterResult === 'pass' && failed) return false;
+              if (filterResult === 'fail' && !failed) return false;
+          }
+
+          // 5. Time Filter
+          if (filterTime !== 'all') {
+              const testDate = new Date(test.timestamp);
+              const now = new Date();
+              const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+              const testTime = new Date(testDate.getFullYear(), testDate.getMonth(), testDate.getDate()).getTime();
+
+              if (filterTime === 'today') {
+                  if (testTime !== today) return false;
+              } else if (filterTime === 'yesterday') {
+                  const yesterday = today - 86400000;
+                  if (testTime !== yesterday) return false;
+              } else if (filterTime === 'week') {
+                  const weekAgo = today - (7 * 86400000);
+                  if (testTime < weekAgo) return false;
+              } else if (filterTime === 'month') {
+                  const monthAgo = today - (30 * 86400000);
+                  if (testTime < monthAgo) return false;
+              }
+          }
+
           return true;
       });
   };
@@ -1066,6 +1096,28 @@ function App() {
                                     <option value="all">Jeder Status</option>
                                     <option value="included">✅ Gewertet</option>
                                     <option value="excluded">🚫 Ignoriert</option>
+                                </select>
+
+                                <select 
+                                    value={filterResult} 
+                                    onChange={(e) => setFilterResult(e.target.value)}
+                                    style={{padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--border-color)', background: 'var(--metric-bg)', color: 'var(--text-color)', fontSize: '0.85rem', cursor: 'pointer'}}
+                                >
+                                    <option value="all">Jedes Ergebnis</option>
+                                    <option value="pass">👍 Bestanden</option>
+                                    <option value="fail">⚠️ Nicht Bestanden</option>
+                                </select>
+
+                                <select 
+                                    value={filterTime} 
+                                    onChange={(e) => setFilterTime(e.target.value)}
+                                    style={{padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--border-color)', background: 'var(--metric-bg)', color: 'var(--text-color)', fontSize: '0.85rem', cursor: 'pointer'}}
+                                >
+                                    <option value="all">Gesamte Zeit</option>
+                                    <option value="today">Heute</option>
+                                    <option value="yesterday">Gestern</option>
+                                    <option value="week">Letzte 7 Tage</option>
+                                    <option value="month">Letzte 30 Tage</option>
                                 </select>
                             </div>
 
@@ -2185,6 +2237,28 @@ function App() {
                         <option value="all">Jeder Status</option>
                         <option value="included">✅ Gewertet</option>
                         <option value="excluded">🚫 Ignoriert</option>
+                    </select>
+
+                    <select 
+                        value={filterResult} 
+                        onChange={(e) => setFilterResult(e.target.value)}
+                        style={{padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--border-color)', background: 'var(--metric-bg)', color: 'var(--text-color)', fontSize: '0.85rem', cursor: 'pointer'}}
+                    >
+                        <option value="all">Jedes Ergebnis</option>
+                        <option value="pass">👍 Bestanden</option>
+                        <option value="fail">⚠️ Nicht Bestanden</option>
+                    </select>
+
+                    <select 
+                        value={filterTime} 
+                        onChange={(e) => setFilterTime(e.target.value)}
+                        style={{padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--border-color)', background: 'var(--metric-bg)', color: 'var(--text-color)', fontSize: '0.85rem', cursor: 'pointer'}}
+                    >
+                        <option value="all">Gesamte Zeit</option>
+                        <option value="today">Heute</option>
+                        <option value="yesterday">Gestern</option>
+                        <option value="week">Letzte 7 Tage</option>
+                        <option value="month">Letzte 30 Tage</option>
                     </select>
                 </div>
 
