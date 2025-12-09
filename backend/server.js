@@ -66,7 +66,8 @@ function createSettingsTable() {
           { key: 'tolerance', value: '10' },        // 10%
           { key: 'retry_count', value: '3' },       // 3 Wiederholungen
           { key: 'retry_delay', value: '30' },      // 30 Sekunden Pause
-          { key: 'retry_strategy', value: 'AVG' }   // AVG, MIN, MAX
+          { key: 'retry_strategy', value: 'AVG' },  // AVG, MIN, MAX
+          { key: 'retry_server_strategy', value: 'NEW' } // KEEP, NEW
       ];
 
       settingsDefaults.forEach(setting => {
@@ -300,275 +301,194 @@ const saveResultPromise = (result, options = {}) => {
 
 
 
+// Hilfsfunktion: Besten Server finden (unter Berücksichtigung der Blacklist)
+const findBestServer = async (blacklist = []) => {
+    return new Promise((resolve, reject) => {
+        exec('speedtest -L --format=json --accept-license --accept-gdpr', (err, stdout) => {
+             if (err) return reject(err);
+             try { 
+                 const list = JSON.parse(stdout);
+                 if (list && list.servers) {
+                     const available = list.servers.filter(s => !blacklist.includes(String(s.id)));
+                     resolve(available.length > 0 ? available[0] : null);
+                 } else { resolve(null); }
+             } catch(e) { reject(e); }
+        });
+    });
+};
+
 // --- Automatischer Hintergrund-Test (Erweitert) ---
 
 async function runScheduledTest() {
 
   if (isTestRunning) {
-
     console.log(`[${new Date().toISOString()}] Geplanter Test übersprungen: Ein anderer Test läuft bereits.`);
-
     return;
-
   }
 
-
-
   isTestRunning = true;
-
   console.log(`[${new Date().toISOString()}] Starte geplanten Speedtest...`);
 
-
-
   try {
-
       // 1. Settings laden
-
       const settings = await new Promise((resolve, reject) => {
-
           db.all("SELECT * FROM settings", [], (err, rows) => {
-
               if (err) reject(err);
-
               else {
-
                   const s = {};
-
                   rows.forEach(row => s[row.key] = row.value);
-
                   resolve(s);
-
               }
-
           });
-
       });
 
-
-
       const expDown = parseFloat(settings.expected_download || 0);
-
       const expUp = parseFloat(settings.expected_upload || 0);
-
       const tolerance = parseFloat(settings.tolerance || 10);
-
       const retryCount = parseInt(settings.retry_count || 3);
-
       const retryDelay = parseInt(settings.retry_delay || 30);
-
       const retryStrategy = settings.retry_strategy || 'AVG';
+      const retryServerStrategy = settings.retry_server_strategy || 'KEEP';
       const serverBlacklistStr = settings.server_blacklist || '';
+      
+      const globalBlacklist = serverBlacklistStr.split(',').map(s => s.trim()).filter(s => s);
+      let currentBlacklist = [...globalBlacklist];
 
-      let targetServerId = null;
-
-      if (serverBlacklistStr) {
-          const blacklist = serverBlacklistStr.split(',').map(s => s.trim());
+      // Initialen Server bestimmen (wenn Blacklist aktiv)
+      let currentServerId = null;
+      if (globalBlacklist.length > 0) {
           try {
-              // Hole Server Liste
-              const serverList = await new Promise((resolve, reject) => {
-                  exec('speedtest -L --format=json --accept-license --accept-gdpr', (err, stdout) => {
-                       if (err) return reject(err);
-                       try { resolve(JSON.parse(stdout)); } catch(e) { reject(e); }
-                  });
-              });
-              
-              if (serverList && serverList.servers) {
-                   const available = serverList.servers.filter(s => !blacklist.includes(String(s.id)));
-                   if (available.length > 0) {
-                       targetServerId = available[0].id;
-                       console.log(`[Scheduled] Blacklist aktiv. Wähle Server ID: ${targetServerId} (${available[0].name})`);
-                   } else {
-                       console.warn("[Scheduled] Alle Server auf der Blacklist! Nutze Standard-Auswahl.");
-                   }
+              const bestServer = await findBestServer(currentBlacklist);
+              if (bestServer) {
+                  currentServerId = bestServer.id;
+                  console.log(`[Scheduled] Wähle Server ID: ${currentServerId} (${bestServer.name})`);
+              } else {
+                  console.warn("[Scheduled] Keine Server verfügbar (alle geblacklistet?). Nutze Auto-Select.");
               }
           } catch (e) {
-              console.error("Fehler bei Server-Auswahl (Blacklist):", e);
+              console.error("Fehler bei Server-Wahl:", e);
           }
       }
 
       // 2. Ersten Test ausführen
       let attempt1;
-
       try {
-
-          attempt1 = await runSpeedtestPromise(targetServerId);
-
+          attempt1 = await runSpeedtestPromise(currentServerId);
       } catch (e) {
-
           console.error("Erster Test fehlgeschlagen:", e);
-
           isTestRunning = false;
-
           return;
-
       }
 
-
+      // FIX: Wenn wir keinen Server erzwungen haben (currentServerId war null), und 'KEEP' aktiv ist,
+      // müssen wir jetzt den Server fixieren, den Ookla gewählt hat, damit 'KEEP' funktioniert.
+      if (retryServerStrategy === 'KEEP' && !currentServerId && attempt1.server && attempt1.server.id) {
+          currentServerId = attempt1.server.id;
+          console.log(`[Scheduled] Erster Test nutzte Auto-Server ID: ${currentServerId}. Fixiere für Retries.`);
+      }
 
       const downMbps = (attempt1.download.bandwidth * 8) / 1000000;
-
       const upMbps = (attempt1.upload.bandwidth * 8) / 1000000;
 
-
-
       // 3. Prüfen ob Retry nötig
-
       let needsRetry = false;
-
       if (expDown > 0 && downMbps < (expDown * (1 - tolerance / 100))) needsRetry = true;
-
       if (expUp > 0 && upMbps < (expUp * (1 - tolerance / 100))) needsRetry = true;
 
-
-
       if (!needsRetry) {
-
           // Alles OK -> Normal speichern
-
           await saveResultPromise(attempt1);
-
           console.log(`[${new Date().toISOString()}] Test erfolgreich (kein Retry nötig).`);
-
       } else {
-
           // RETRY LOGIK
-
           console.log(`[${new Date().toISOString()}] Werte außerhalb der Toleranz. Starte ${retryCount} Wiederholungen...`);
-
           
-
-          const groupId = require('crypto').randomUUID(); // Node 14.17+ hat crypto.randomUUID
-
-          
-
-          // Speichere Versuch 1 (markiert als Teil der Gruppe)
-
+          const groupId = require('crypto').randomUUID(); 
           await saveResultPromise(attempt1, { groupId });
-
-
 
           const allResults = [attempt1];
 
-
-
           for (let i = 0; i < retryCount; i++) {
-
               console.log(`Warte ${retryDelay}s vor Retry ${i+1}...`);
-
               await sleep(retryDelay * 1000);
-
               
+              // Server-Strategie: Wenn 'NEW', suche neuen Server
+              if (retryServerStrategy === 'NEW') {
+                  // Füge bisherige Server zur temporären Blacklist hinzu
+                  if (attempt1.server && attempt1.server.id) {
+                      if (!currentBlacklist.includes(String(attempt1.server.id))) currentBlacklist.push(String(attempt1.server.id));
+                  }
+                  // Auch die aus den bisherigen Retries
+                  allResults.forEach(r => {
+                      if (r.server && r.server.id && !currentBlacklist.includes(String(r.server.id))) {
+                          currentBlacklist.push(String(r.server.id));
+                      }
+                  });
 
-              try {
-
-                  console.log(`Starte Retry ${i+1}/${retryCount}...`);
-
-                  const retryResult = await runSpeedtestPromise(targetServerId);
-
-                  await saveResultPromise(retryResult, { groupId });
-
-                  allResults.push(retryResult);
-
-              } catch (e) {
-
-                  console.error(`Retry ${i+1} fehlgeschlagen:`, e);
-
+                  try {
+                      console.log("Suche neuen Server für Retry...");
+                      const nextServer = await findBestServer(currentBlacklist);
+                      if (nextServer) {
+                          currentServerId = nextServer.id;
+                          console.log(`Retry ${i+1}: Neuer Server ID ${currentServerId} (${nextServer.name})`);
+                      } else {
+                          console.warn("Kein neuer Server gefunden, nutze alten weiter.");
+                      }
+                  } catch (e) {
+                      console.error("Fehler bei Server-Wechsel:", e);
+                  }
               }
 
+              try {
+                  console.log(`Starte Retry ${i+1}/${retryCount}...`);
+                  const retryResult = await runSpeedtestPromise(currentServerId);
+                  await saveResultPromise(retryResult, { groupId });
+                  allResults.push(retryResult);
+              } catch (e) {
+                  console.error(`Retry ${i+1} fehlgeschlagen:`, e);
+              }
           }
 
-
-
           // Aggregat berechnen
-
           const downloads = allResults.map(r => (r.download.bandwidth * 8) / 1000000);
-
           const uploads = allResults.map(r => (r.upload.bandwidth * 8) / 1000000);
-
           const pings = allResults.map(r => r.ping.latency);
-
-
 
           let finalDown, finalUp, finalPing;
 
-
-
           if (retryStrategy === 'MIN') {
-
               finalDown = Math.min(...downloads);
-
               finalUp = Math.min(...uploads);
-
-              finalPing = Math.max(...pings); // Bei Ping ist Max = Worst Case? Oder Min? "MIN" Strategie heißt meist "Worst Case Performance" -> also niedriger Speed, hoher Ping.
-
-                                              // Warte, Strategie "MIN" bei Speedtest heißt meist "Minimum Speed".
-
-                                              // Bei Ping ist "Minimum" gut.
-
-                                              // Wir nehmen einfach stur MIN/MAX der Zahlenwerte.
-
               finalPing = Math.min(...pings);
-
           } else if (retryStrategy === 'MAX') {
-
               finalDown = Math.max(...downloads);
-
               finalUp = Math.max(...uploads);
-
               finalPing = Math.max(...pings);
-
           } else {
-
               // AVG
-
               finalDown = downloads.reduce((a,b)=>a+b,0) / downloads.length;
-
               finalUp = uploads.reduce((a,b)=>a+b,0) / uploads.length;
-
               finalPing = pings.reduce((a,b)=>a+b,0) / pings.length;
-
           }
 
-
-
           // Aggregat speichern
-
-          // Wir nehmen die Metadaten (Server, ISP etc.) vom allerersten Test als Referenz
-
           await saveResultPromise(attempt1, { 
-
               groupId, 
-
               isAggregate: true,
-
               overrideDownload: finalDown,
-
               overrideUpload: finalUp,
-
               overridePing: finalPing,
-
-              timestamp: new Date().toISOString() // Neuer Zeitstempel für das Aggregat
-
+              timestamp: new Date().toISOString()
           });
-
           
-
           console.log(`[${new Date().toISOString()}] Wiederholungen abgeschlossen. Aggregat (${retryStrategy}) gespeichert.`);
-
       }
 
-
-
   } catch (err) {
-
       console.error("Fehler im Scheduled Test Ablauf:", err);
-
   } finally {
-
       isTestRunning = false;
-
   }
-
 }
 
 // Cronjob Logik
@@ -617,7 +537,9 @@ app.get('/api/settings', (req, res) => {
             tolerance: '10',
             retry_count: '3',
             retry_delay: '30',
-            retry_strategy: 'AVG'
+            retry_strategy: 'AVG',
+            retry_server_strategy: 'NEW',
+            server_blacklist: ''
         };
 
         rows.forEach(row => {
@@ -632,7 +554,7 @@ app.post('/api/settings', (req, res) => {
     const { 
         cron_schedule, retention_period, 
         expected_download, expected_upload, tolerance, retry_count, retry_delay, retry_strategy,
-        server_blacklist
+        server_blacklist, retry_server_strategy
     } = req.body;
     
     let updates = [];
@@ -675,6 +597,7 @@ app.post('/api/settings', (req, res) => {
     }
 
     if (retry_strategy !== undefined) addUpdate('retry_strategy', retry_strategy);
+    if (retry_server_strategy !== undefined) addUpdate('retry_server_strategy', retry_server_strategy);
     if (server_blacklist !== undefined) addUpdate('server_blacklist', server_blacklist);
 
     if (updates.length === 0) {

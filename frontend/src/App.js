@@ -80,6 +80,7 @@ function App() {
   const [retryCount, setRetryCount] = useState('3');
   const [retryDelay, setRetryDelay] = useState('30');
   const [retryStrategy, setRetryStrategy] = useState('AVG');
+  const [retryServerStrategy, setRetryServerStrategy] = useState('NEW');
   const [serverBlacklist, setServerBlacklist] = useState(''); // Kommaseparierte Server IDs
 
   // Confirm Flow State: null -> 'backup' -> 'delete'
@@ -408,6 +409,7 @@ function App() {
         setRetryCount(response.data.retry_count);
         setRetryDelay(response.data.retry_delay);
         setRetryStrategy(response.data.retry_strategy);
+        setRetryServerStrategy(response.data.retry_server_strategy || 'KEEP');
         setServerBlacklist(response.data.server_blacklist || '');
     } catch (err) {
         console.error("Fehler beim Laden der Einstellungen", err);
@@ -429,6 +431,7 @@ function App() {
             retry_count: retryCount,
             retry_delay: retryDelay,
             retry_strategy: retryStrategy,
+            retry_server_strategy: retryServerStrategy,
             server_blacklist: serverBlacklist
         });
         
@@ -3166,7 +3169,7 @@ function App() {
                         </div>
 
                         <div style={{marginTop: '15px'}}>
-                                <label>Strategie:</label>
+                                <label>Strategie (Ergebnisberechnung):</label>
                                 <select 
                                     value={retryStrategy} 
                                     onChange={(e) => setRetryStrategy(e.target.value)}
@@ -3176,6 +3179,21 @@ function App() {
                                     <option value="MIN">Minimum (Worst Case)</option>
                                     <option value="MAX">Maximum (Best Case)</option>
                                 </select>
+                        </div>
+
+                        <div style={{marginTop: '15px'}}>
+                                <label>Server bei Wiederholung:</label>
+                                <select 
+                                    value={retryServerStrategy} 
+                                    onChange={(e) => setRetryServerStrategy(e.target.value)}
+                                    style={{width: '100%', padding: '10px', marginTop: '5px'}}
+                                >
+                                    <option value="KEEP">Gleichen Server nutzen</option>
+                                    <option value="NEW">Neuen Server suchen (Standard)</option>
+                                </select>
+                                <div style={{fontSize: '0.8rem', color: '#666', marginTop: '0'}}>
+                                    Bei "Neu suchen" wird versucht, temporär einen anderen Server zu nutzen.
+                                </div>
                         </div>
 
                         <div style={{marginTop: '15px'}}>
