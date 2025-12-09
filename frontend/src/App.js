@@ -1330,51 +1330,63 @@ function App() {
 
                     
 
-                                                                    <React.Fragment key={test.id}>
+                                                                                                                                        <React.Fragment key={test.id}>
 
                     
 
-                                                                        <li 
+                                                                    
 
                     
 
-                                                                            className={`recent-tests-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
+                                                                                                                                            <li 
 
                     
 
-                                                                            onClick={() => isGroup ? toggleExpand(test.groupId) : setSelectedTest(test)} 
+                                                                    
 
                     
 
-                                                                            style={{
-                                                                                cursor: 'pointer', 
-                                                                                borderLeft: isGroup ? '4px solid #9b59b6' : undefined,
-                                                                                backgroundColor: isBelowThreshold(test) ? 'rgba(231, 76, 60, 0.1)' : undefined
-                                                                            }}
+                                                                                                                                                className={`recent-tests-row ${test.isManual ? 'manual-test-row' : 'auto-test-row'}`} 
 
                     
 
-                                                                        >
+                                                                    
 
                     
 
-                                                                                                                                                        <div className="row-id" style={{width: '120px', fontWeight: 'bold', color: 'var(--text-color)', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                                                                                                                                onClick={() => isGroup ? toggleExpand(test.groupId) : setSelectedTest(test)} 
 
                     
 
-                                                                            
+                                                                    
 
                     
 
-                                                                                                                                                            {isGroup && <span style={{fontSize: '0.8rem'}}>{isExpanded ? '▼' : '▶'}</span>}
+                                                                                                                                                style={{
 
                     
 
-                                                                            
+                                                                                                                                                    cursor: 'pointer', 
 
                     
 
-                                                                                                                                                            {test.id}
+                                                                                                                                                    borderLeft: isGroup ? '4px solid #9b59b6' : undefined,
+
+                    
+
+                                                                                                                                                    backgroundColor: isBelowThreshold(test) ? 'rgba(231, 76, 60, 0.1)' : undefined
+
+                    
+
+                                                                                                                                                }}
+
+                    
+
+                                                                    
+
+                    
+
+                                                                                                                                            >
 
                     
 
@@ -1382,87 +1394,159 @@ function App() {
 
                     
 
-                                                                                                                                                            <div style={{display: 'flex', gap: '4px'}}>
+                                                                                                                                                                <div className="row-id" style={{width: '120px', fontWeight: 'bold', color: 'var(--text-color)', display: 'flex', alignItems: 'center', gap: '8px'}}>
 
                     
 
-                                                                                                                                                                <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help', lineHeight: 1}}>
+                                                                    
 
                     
 
-                                                                                                                                                                    {test.isManual ? '👤' : '🤖'}
+                                                                                                                                                                    {isGroup && <span style={{fontSize: '0.8rem'}}>{isExpanded ? '▼' : '▶'}</span>}
 
                     
 
-                                                                                                                                                                </span>
+                                                                    
 
                     
 
-                                                                                                                                                                {isGroup && <span title="Durchschnittswert" style={{fontSize: '0.8rem', lineHeight: 1}}>📦</span>}
+                                                                                                                                                                    {test.id}
 
                     
 
-                                                                                                                                                                {test.excludeFromStats === 1 && <span title="Wird in Statistik ignoriert" style={{fontSize: '0.8rem', lineHeight: 1}}>🚫</span>}
+                                                                    
 
                     
 
-                                                                                                                                                            </div>
+                                                                                                                                                                    
 
                     
 
-                                                                            
+                                                                    
 
                     
 
-                                                                                                                                                        </div>
+                                                                                                                                                                    <div style={{display: 'flex', gap: '4px'}}>
 
                     
 
-                                                                            
+                                                                    
 
                     
 
-                                                                                                                                                        <div className="row-time">
+                                                                                                                                                                        <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help', lineHeight: 1}}>
 
                     
 
-                                                                            
+                                                                    
 
                     
 
-                                                                                                                                                        <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                                                                                                                                                                            {test.isManual ? '👤' : '🤖'}
 
                     
 
-                                                                            
+                                                                    
 
                     
 
-                                                                                                                                                            {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                                                                                                                                        </span>
 
                     
 
-                                                                            
+                                                                    
 
                     
 
-                                                                                                                                                        </div>
+                                                                                                                                                                        {isGroup && <span title="Durchschnittswert" style={{fontSize: '0.8rem', lineHeight: 1}}>📦</span>}
 
                     
 
-                                                                            
+                                                                    
 
                     
 
-                                                                                                                                                        <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
+                                                                                                                                                                        {test.excludeFromStats === 1 && <span title="Wird in Statistik ignoriert" style={{fontSize: '0.8rem', lineHeight: 1}}>🚫</span>}
 
                     
 
-                                                                            
+                                                                    
 
                     
 
-                                                                                                                                                        </div>
+                                                                                                                                                                        {test.serverId && serverBlacklist.split(',').map(s=>s.trim()).includes(String(test.serverId)) && 
+
+                    
+
+                                                                                                                                                                            <span title="Server auf Blacklist" style={{fontSize: '0.8rem', lineHeight: 1}}>⛔</span>
+
+                    
+
+                                                                                                                                                                        }
+
+                    
+
+                                                                    
+
+                    
+
+                                                                                                                                                                    </div>
+
+                    
+
+                                                                    
+
+                    
+
+                                                                                                                                                                </div>
+
+                    
+
+                                                                                                                                                
+
+                    
+
+                                                                                                                                                                <div className="row-time">
+
+                    
+
+                                                                    
+
+                    
+
+                                                                                                                                                                <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+
+                    
+
+                                                                    
+
+                    
+
+                                                                                                                                                                    {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+
+                    
+
+                                                                    
+
+                    
+
+                                                                                                                                                                </div>
+
+                    
+
+                                                                    
+
+                    
+
+                                                                                                                                                                <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
+
+                    
+
+                                                                    
+
+                    
+
+                                                                                                                                                                </div>
 
         
 
@@ -2452,6 +2536,9 @@ function App() {
                                             </span>
                                             {isGroup && <span title="Durchschnittswert einer Testreihe" style={{fontSize: '0.8rem', lineHeight: 1}}>📦</span>}
                                             {test.excludeFromStats === 1 && <span title="Wird in Statistik ignoriert" style={{fontSize: '0.8rem', lineHeight: 1}}>🚫</span>}
+                                            {test.serverId && serverBlacklist.split(',').map(s=>s.trim()).includes(String(test.serverId)) && 
+                                                <span title="Server auf Blacklist" style={{fontSize: '0.8rem', lineHeight: 1}}>⛔</span>
+                                            }
                                         </div>
                                     </div>
                                     <div className="row-time">
