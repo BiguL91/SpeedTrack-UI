@@ -1828,24 +1828,30 @@ function App() {
                         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px'}}>
                             <div>
                                 <label>Wiederholungen:</label>
+                                <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '5px'}}>
+                                    (Max. 1-5)
+                                </div>
                                 <input 
                                     type="number" 
                                     min="1"
-                                    max="10"
+                                    max="5"
                                     value={retryCount}
                                     onChange={(e) => setRetryCount(e.target.value)}
-                                    style={{width: '100%', padding: '10px', marginTop: '5px'}}
+                                    style={{width: '100%', padding: '10px'}}
                                 />
                             </div>
                             <div>
                                 <label>Pause (Sekunden):</label>
+                                <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '5px'}}>
+                                    (5-60 Sekunden)
+                                </div>
                                 <input 
                                     type="number" 
-                                    min="0"
-                                    max="300"
+                                    min="5"
+                                    max="60"
                                     value={retryDelay}
                                     onChange={(e) => setRetryDelay(e.target.value)}
-                                    style={{width: '100%', padding: '10px', marginTop: '5px'}}
+                                    style={{width: '100%', padding: '10px'}}
                                 />
                             </div>
                         </div>

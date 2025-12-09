@@ -629,8 +629,19 @@ app.post('/api/settings', (req, res) => {
     if (expected_download !== undefined) addUpdate('expected_download', expected_download);
     if (expected_upload !== undefined) addUpdate('expected_upload', expected_upload);
     if (tolerance !== undefined) addUpdate('tolerance', tolerance);
-    if (retry_count !== undefined) addUpdate('retry_count', retry_count);
-    if (retry_delay !== undefined) addUpdate('retry_delay', retry_delay);
+    
+    if (retry_count !== undefined) {
+        const count = parseInt(retry_count);
+        if (count < 1 || count > 5) return res.status(400).json({ error: "Wiederholungen müssen zwischen 1 und 5 liegen." });
+        addUpdate('retry_count', retry_count);
+    }
+
+    if (retry_delay !== undefined) {
+        const delay = parseInt(retry_delay);
+        if (delay < 5 || delay > 60) return res.status(400).json({ error: "Pause muss zwischen 5 und 60 Sekunden liegen." });
+        addUpdate('retry_delay', retry_delay);
+    }
+
     if (retry_strategy !== undefined) addUpdate('retry_strategy', retry_strategy);
 
     if (updates.length === 0) {
