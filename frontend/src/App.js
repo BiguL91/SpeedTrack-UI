@@ -14,6 +14,7 @@ import {
 import { Line } from 'react-chartjs-2';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import './App.css';
+import packageJson from '../package.json';
 
 ChartJS.register(
   CategoryScale,
@@ -1711,6 +1712,18 @@ function App() {
       />
       
       {view === 'dashboard' ? renderDashboard() : renderFullHistory()}
+
+      <footer style={{
+          textAlign: 'center', 
+          marginTop: '40px', 
+          marginBottom: '20px', 
+          color: 'var(--text-secondary)', 
+          fontSize: '0.8rem',
+          opacity: 0.7
+      }}>
+          <div>Version {packageJson.version}</div>
+          <div style={{fontSize: '0.7rem', marginTop: '5px'}}>Created with Gemini</div>
+      </footer>
 
       {/* SETTINGS MODAL */}
       {showSettings && (
