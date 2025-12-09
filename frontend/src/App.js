@@ -75,6 +75,9 @@ function App() {
 
   // Confirm Flow State: null -> 'backup' -> 'delete'
   const [confirmStep, setConfirmStep] = useState(null);
+
+  // State für das Ergebnis-Modal nach manuellem Test
+  const [manualResult, setManualResult] = useState(null); // Das Ergebnis-Objekt
   
   // State für aufgeklappte Gruppe (ID)
   const [expandedGroupId, setExpandedGroupId] = useState(null);
@@ -87,6 +90,21 @@ function App() {
     setTimeout(() => {
       setNotification(null);
     }, 3000); // Nach 3 Sekunden ausblenden
+  };
+
+  // Funktion um Test aus Statistik auszuschließen
+  const toggleExcludeStats = async (testId, exclude) => {
+      try {
+          await axios.patch(`/api/results/${testId}/exclude`, { exclude });
+          showToast(exclude ? "Test wird ignoriert." : "Test wieder aufgenommen.", "success");
+          fetchHistory(view === 'dashboard' ? 50 : 0); // Reload
+          setManualResult(null); // Modal schließen falls offen
+          if (selectedTest && selectedTest.id === testId) {
+             setSelectedTest(prev => ({...prev, excludeFromStats: exclude ? 1 : 0}));
+          }
+      } catch (err) {
+          showToast("Fehler beim Aktualisieren: " + err.message, "error");
+      }
   };
 
   // --- CRON LOGIC HELPERS ---
@@ -504,7 +522,12 @@ function App() {
     }
 
     const getStats = (key) => {
-        const values = testHistory.map(t => t[key]);
+        // Filtere Tests raus, die ignoriert werden sollen
+        const validTests = testHistory.filter(t => t.excludeFromStats !== 1);
+        
+        if (validTests.length === 0) return { avg: 0, min: 0, max: 0 };
+
+        const values = validTests.map(t => t[key]);
         const sum = values.reduce((a, b) => a + b, 0);
         return {
             avg: sum / values.length,
@@ -591,7 +614,10 @@ function App() {
                 
                 eventSource.close();
                 setLoading(false);
-                showToast("Test erfolgreich beendet! 🚀", "success");
+                
+                // Öffne Entscheidungs-Modal
+                setManualResult(data.result);
+                
             } else if (data.type === 'error') {
                 showToast(data.message, "error"); // Fehler als Toast!
                 eventSource.close();
@@ -984,7 +1010,7 @@ function App() {
 
                     
 
-                                                        <div className="header-id" style={{width: '60px', textAlign: 'left'}}>ID</div>
+                                                        <div className="header-id" style={{width: '120px', textAlign: 'left'}}>ID</div>
 
                     
 
@@ -1084,71 +1110,111 @@ function App() {
 
                     
 
-                                                                            <div className="row-id" style={{width: '60px', fontWeight: 'bold', color: 'var(--text-color)'}}>
+                                                                                                                                                        <div className="row-id" style={{width: '120px', fontWeight: 'bold', color: 'var(--text-color)', display: 'flex', alignItems: 'center', gap: '8px'}}>
 
                     
 
-                                                                                {isGroup && <span style={{marginRight: '5px', fontSize: '0.8rem'}}>{isExpanded ? '▼' : '▶'}</span>}
+                                                                            
 
                     
 
-                                                                                {test.id}
+                                                                                                                                                            {isGroup && <span style={{fontSize: '0.8rem'}}>{isExpanded ? '▼' : '▶'}</span>}
 
                     
 
-                                                                            </div>
+                                                                            
 
                     
 
-                                                                            <div className="row-time">
+                                                                                                                                                            {test.id}
 
                     
 
-                                                                            <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                                                                                                                                                            
 
                     
 
-                                                                                {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                                                                                                                            <div style={{display: 'flex', gap: '4px'}}>
 
                     
 
-                                                                                
+                                                                                                                                                                <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help', lineHeight: 1}}>
 
                     
 
-                                                                                <div style={{display: 'flex', flexDirection: 'column', gap: '2px', marginLeft: '5px'}}>
+                                                                                                                                                                    {test.isManual ? '👤' : '🤖'}
 
                     
 
-                                                                                    <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help', lineHeight: 1}}>
+                                                                                                                                                                </span>
 
                     
 
-                                                                                        {test.isManual ? '👤' : '🤖'}
+                                                                                                                                                                {isGroup && <span title="Durchschnittswert" style={{fontSize: '0.8rem', lineHeight: 1}}>📦</span>}
 
                     
 
-                                                                                    </span>
+                                                                                                                                                                {test.excludeFromStats === 1 && <span title="Wird in Statistik ignoriert" style={{fontSize: '0.8rem', lineHeight: 1}}>🚫</span>}
 
                     
 
-                                                                                    {isGroup && <span title="Durchschnittswert" style={{fontSize: '0.8rem', lineHeight: 1}}>📦</span>}
+                                                                                                                                                            </div>
 
                     
 
-                                                                                </div>
+                                                                            
 
                     
 
-                                                                            </div>
+                                                                                                                                                        </div>
 
                     
 
-                                                                            <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
+                                                                            
 
                     
 
-                                                                            </div>
+                                                                                                                                                        <div className="row-time">
+
+                    
+
+                                                                            
+
+                    
+
+                                                                                                                                                        <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+
+                    
+
+                                                                            
+
+                    
+
+                                                                                                                                                            {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+
+                    
+
+                                                                            
+
+                    
+
+                                                                                                                                                        </div>
+
+                    
+
+                                                                            
+
+                    
+
+                                                                                                                                                        <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
+
+                    
+
+                                                                            
+
+                    
+
+                                                                                                                                                        </div>
 
         
 
@@ -1608,19 +1674,20 @@ function App() {
                                     onClick={() => isGroup ? toggleExpand(test.groupId) : setSelectedTest(test)} 
                                     style={{cursor: 'pointer', borderLeft: isGroup ? '4px solid #9b59b6' : undefined}}
                                 >
-                                    <div className="row-id">
-                                        {isGroup && <span style={{marginRight: '5px'}}>{isExpanded ? '▼' : '▶'}</span>}
+                                    <div className="row-id" style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                        {isGroup && <span style={{fontSize: '0.8rem'}}>{isExpanded ? '▼' : '▶'}</span>}
                                         {test.id}
-                                    </div>
-                                    <div className="row-time">
-                                    <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
-                                        {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                        <div style={{display: 'flex', flexDirection: 'column', gap: '2px', marginLeft: '5px'}}>
+                                        <div style={{display: 'flex', gap: '4px'}}>
                                             <span title={test.isManual ? "Manueller Test" : "Automatischer Test"} style={{fontSize: '0.8rem', cursor: 'help', lineHeight: 1}}>
                                                 {test.isManual ? '👤' : '🤖'}
                                             </span>
                                             {isGroup && <span title="Durchschnittswert einer Testreihe" style={{fontSize: '0.8rem', lineHeight: 1}}>📦</span>}
+                                            {test.excludeFromStats === 1 && <span title="Wird in Statistik ignoriert" style={{fontSize: '0.8rem', lineHeight: 1}}>🚫</span>}
                                         </div>
+                                    </div>
+                                    <div className="row-time">
+                                    <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                                        {new Date(test.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                     </div>
                                     <span className="row-date">{new Date(test.timestamp).toLocaleDateString()}</span>
                                     </div>
@@ -1726,6 +1793,52 @@ function App() {
           <div>Version {packageJson.version}</div>
           <div style={{fontSize: '0.7rem', marginTop: '5px'}}>Created with Gemini</div>
       </footer>
+
+      {/* MANUAL RESULT MODAL */}
+      {manualResult && (
+        <div className="modal-overlay">
+          <div className="modal-content card" style={{textAlign: 'center'}}>
+            <h2>✅ Test abgeschlossen</h2>
+            <p style={{marginBottom: '20px'}}>Hier sind deine Ergebnisse:</p>
+            
+            <div style={{display: 'flex', justifyContent: 'space-around', marginBottom: '30px'}}>
+                <div>
+                    <div style={{fontSize: '0.9rem', color: '#666'}}>Download</div>
+                    <div style={{fontSize: '1.4rem', fontWeight: 'bold', color: '#35a2eb'}}>{manualResult.download.toFixed(1)} <small>Mbps</small></div>
+                </div>
+                <div>
+                    <div style={{fontSize: '0.9rem', color: '#666'}}>Upload</div>
+                    <div style={{fontSize: '1.4rem', fontWeight: 'bold', color: '#ff6384'}}>{manualResult.upload.toFixed(1)} <small>Mbps</small></div>
+                </div>
+                <div>
+                    <div style={{fontSize: '0.9rem', color: '#666'}}>Ping</div>
+                    <div style={{fontSize: '1.4rem', fontWeight: 'bold'}}>{manualResult.ping.toFixed(0)} <small>ms</small></div>
+                </div>
+            </div>
+
+            <p style={{fontSize: '1rem', fontWeight: 'bold', marginBottom: '20px'}}>
+                Soll dieses Ergebnis in die Statistik aufgenommen werden?
+            </p>
+
+            <div className="modal-actions" style={{display: 'flex', justifyContent: 'center', gap: '15px'}}>
+                <button 
+                    className="modal-button" 
+                    style={{backgroundColor: '#666'}} 
+                    onClick={() => toggleExcludeStats(manualResult.id, true)}
+                >
+                    🚫 Nein, ignorieren
+                </button>
+                <button 
+                    className="modal-button" 
+                    style={{background: 'var(--primary-gradient)'}} 
+                    onClick={() => setManualResult(null)} // Default ist "Aufnehmen" (Status ist DB default 0)
+                >
+                    ✅ Ja, aufnehmen
+                </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SETTINGS MODAL */}
       {showSettings && (

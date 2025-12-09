@@ -402,7 +402,7 @@ button.start-btn:disabled {
 }
 
 .recent-tests-table-header .header-id {
-    width: 60px; /* Für die neue ID-Spalte */
+    width: 120px; /* Für die neue ID-Spalte */
     text-align: left;
 }
 .recent-tests-table-header .header-time {
@@ -442,7 +442,8 @@ button.start-btn:disabled {
 
 /* Spalten-Stile */
 .row-id {
-  width: 60px; /* Für die neue ID-Spalte */
+  /* Breite wird oft inline oder via grid gesetzt, aber standard hier: */
+  width: 120px; 
   font-weight: 700;
   color: var(--text-color);
   text-align: left;
@@ -564,7 +565,7 @@ button.start-btn:disabled {
 /* Neue Styles für Full History Table */
 .recent-tests-table-header.full-history-header {
     display: grid;
-    grid-template-columns: 60px 160px 1fr 110px 110px 90px 140px 120px; /* Großzügiger Platz */
+    grid-template-columns: 120px 160px 1fr 110px 110px 90px 140px 120px; /* Großzügiger Platz */
     gap: 15px;
     padding: 15px 20px;
     align-items: center;
@@ -584,7 +585,7 @@ button.start-btn:disabled {
 
 .recent-tests-row.full-history-row {
     display: grid;
-    grid-template-columns: 60px 160px 1fr 110px 110px 90px 140px 120px; /* Identisch zum Header */
+    grid-template-columns: 120px 160px 1fr 110px 110px 90px 140px 120px; /* Identisch zum Header */
     gap: 15px;
     padding: 15px 20px;
     align-items: center;
