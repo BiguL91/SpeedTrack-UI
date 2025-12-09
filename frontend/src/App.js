@@ -957,68 +957,48 @@ function App() {
         {/* CHARTS WRAPPER */}
         {history.length > 0 && (
             <div className="charts-row">
-            <div className="card chart-container" style={{display: 'flex', flexDirection: 'column', position: 'relative'}}>
+            <div 
+                className="card chart-container" 
+                style={{display: 'flex', flexDirection: 'column', position: 'relative', cursor: 'pointer'}}
+                onClick={() => setExpandedChart('speed')}
+                title="Klicken zum Vergrößern"
+            >
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
                     <h3 style={{margin: 0, fontSize: '1.1rem', color: 'var(--text-color)'}}>Geschwindigkeit</h3>
-                    <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
-                        <button 
-                            onClick={() => setExpandedChart('speed')}
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontSize: '1.2rem',
-                                padding: '0 5px',
-                                color: 'var(--text-secondary)'
-                            }}
-                            title="Vergrößern"
-                        >
-                            🔍
-                        </button>
-                        <div style={{display: 'flex', gap: '5px'}}>
-                            {[5, 10, 20, 50].map(limit => (
-                                <button 
-                                    key={limit}
-                                    onClick={() => setChartDataLimit(limit)}
-                                    style={{
-                                        background: chartDataLimit === limit ? 'var(--primary-gradient)' : 'transparent',
-                                        color: chartDataLimit === limit ? 'white' : 'var(--text-secondary)',
-                                        border: '1px solid ' + (chartDataLimit === limit ? 'transparent' : 'var(--border-color)'),
-                                        padding: '2px 8px',
-                                        borderRadius: '10px',
-                                        cursor: 'pointer',
-                                        fontSize: '0.75rem',
-                                        fontWeight: '600',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    {limit === 0 ? 'Alle' : limit}
-                                </button>
-                            ))}
-                        </div>
+                    <div style={{display: 'flex', gap: '5px'}} onClick={(e) => e.stopPropagation()}>
+                        {[5, 10, 20, 50].map(limit => (
+                            <button 
+                                key={limit}
+                                onClick={() => setChartDataLimit(limit)}
+                                style={{
+                                    background: chartDataLimit === limit ? 'var(--primary-gradient)' : 'transparent',
+                                    color: chartDataLimit === limit ? 'white' : 'var(--text-secondary)',
+                                    border: '1px solid ' + (chartDataLimit === limit ? 'transparent' : 'var(--border-color)'),
+                                    padding: '2px 8px',
+                                    borderRadius: '10px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '600',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {limit === 0 ? 'Alle' : limit}
+                            </button>
+                        ))}
                     </div>
                 </div>
                 <div style={{flex: 1, minHeight: 0}}>
                     <Line key={`speed-${theme}`} options={speedOptions} data={dashboardChartData.speedData} />
                 </div>
             </div>
-            <div className="card chart-container" style={{display: 'flex', flexDirection: 'column', position: 'relative'}}>
+            <div 
+                className="card chart-container" 
+                style={{display: 'flex', flexDirection: 'column', position: 'relative', cursor: 'pointer'}}
+                onClick={() => setExpandedChart('ping')}
+                title="Klicken zum Vergrößern"
+            >
                 <div style={{marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                      <h3 style={{margin: 0, fontSize: '1.1rem', color: 'var(--text-color)'}}>Ping</h3>
-                     <button 
-                        onClick={() => setExpandedChart('ping')}
-                        style={{
-                            background: 'transparent',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: '1.2rem',
-                            padding: '0 5px',
-                            color: 'var(--text-secondary)'
-                        }}
-                        title="Vergrößern"
-                    >
-                        🔍
-                    </button>
                 </div>
                 <div style={{flex: 1, minHeight: 0}}>
                     <Line key={`ping-${theme}`} options={pingOptions} data={dashboardChartData.pingData} />
@@ -1035,7 +1015,7 @@ function App() {
 
                         <div className="list-header-left">
 
-                            <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte Tests</h2>
+                            <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte {getFilteredHistory().slice(0, visibleCount).length} Tests</h2>
 
                             <div style={{display: 'flex', gap: '10px', marginLeft: '10px'}}>
                                 <select 
