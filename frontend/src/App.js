@@ -1842,7 +1842,7 @@ function App() {
 
         
 
-                                                                                        <li 
+                                                                                                                                                                                <li 
 
         
 
@@ -1850,7 +1850,7 @@ function App() {
 
         
 
-                                                                                            key={detail.id} 
+                                                                                        
 
         
 
@@ -1858,7 +1858,7 @@ function App() {
 
         
 
-                                                                                            className={`recent-tests-row`} 
+                                                                                                                                                                                    key={detail.id} 
 
         
 
@@ -1866,7 +1866,7 @@ function App() {
 
         
 
-                                                                                            onClick={() => setSelectedTest(detail)} 
+                                                                                        
 
         
 
@@ -1874,7 +1874,7 @@ function App() {
 
         
 
-                                                                                            style={{
+                                                                                                                                                                                    className={`recent-tests-row`} 
 
         
 
@@ -1882,7 +1882,7 @@ function App() {
 
         
 
-                                                                                                cursor: 'pointer', 
+                                                                                        
 
         
 
@@ -1890,7 +1890,7 @@ function App() {
 
         
 
-                                                                                                background: isBelowThreshold(detail) ? 'rgba(231, 76, 60, 0.1)' : 'rgba(0,0,0,0.02)', 
+                                                                                                                                                                                    onClick={() => setSelectedTest(detail)} 
 
         
 
@@ -1898,7 +1898,7 @@ function App() {
 
         
 
-                                                                                                opacity: 0.8,
+                                                                                        
 
         
 
@@ -1906,7 +1906,7 @@ function App() {
 
         
 
-                                                                                                padding: '8px 15px' 
+                                                                                                                                                                                    style={{
 
         
 
@@ -1914,7 +1914,7 @@ function App() {
 
         
 
-                                                                                            }}
+                                                                                        
 
         
 
@@ -1922,7 +1922,7 @@ function App() {
 
         
 
-                                                                                        >
+                                                                                                                                                                                        cursor: 'pointer', 
 
         
 
@@ -1930,7 +1930,7 @@ function App() {
 
         
 
-                                                                                                                                    <div className="row-id" style={{width: '60px', paddingLeft: '15px', fontSize: '0.8rem', color: '#999'}}>↳ {detail.id}</div>
+                                                                                        
 
         
 
@@ -1938,7 +1938,7 @@ function App() {
 
         
 
-                                                                                                                                    <div className="row-time">
+                                                                                                                                                                                        background: isBelowThreshold(detail) ? 'rgba(231, 76, 60, 0.1)' : 'rgba(0,0,0,0.02)', 
 
         
 
@@ -1946,7 +1946,7 @@ function App() {
 
         
 
-                                                                                                                                        <div style={{display: 'flex', alignItems: 'center', gap: '5px', fontStyle: 'italic', color: '#999'}}>
+                                                                                        
 
         
 
@@ -1954,7 +1954,7 @@ function App() {
 
         
 
-                                                                                                                                            {new Date(detail.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                                                                                                                                                        opacity: 0.8,
 
         
 
@@ -1962,7 +1962,7 @@ function App() {
 
         
 
-                                                                                                                                        </div>
+                                                                                        
 
         
 
@@ -1970,7 +1970,175 @@ function App() {
 
         
 
-                                                                                                                                    </div>
+                                                                                                                                                                                        padding: '8px 15px' 
+
+        
+
+                    
+
+        
+
+                                                                                        
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                    }}
+
+        
+
+                    
+
+        
+
+                                                                                        
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                >
+
+        
+
+                    
+
+        
+
+                                                                                        
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                                                            <div className="row-id" style={{width: '60px', paddingLeft: '15px', fontSize: '0.8rem', color: '#999', display: 'flex', alignItems: 'center', gap: '5px'}}>
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                                ↳ {detail.id}
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                                {detail.serverId && serverBlacklist.split(',').map(s=>s.trim()).includes(String(detail.serverId)) && 
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                                    <span title="Server auf Blacklist" style={{fontSize: '0.7rem', lineHeight: 1}}>⛔</span>
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                                }
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                            </div>
+
+        
+
+                    
+
+        
+
+                                                                                        
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                                                            <div className="row-time">
+
+        
+
+                    
+
+        
+
+                                                                                        
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                                                                <div style={{display: 'flex', alignItems: 'center', gap: '5px', fontStyle: 'italic', color: '#999'}}>
+
+        
+
+                    
+
+        
+
+                                                                                        
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                                                                    {new Date(detail.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+
+        
+
+                    
+
+        
+
+                                                                                        
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                                                                </div>
+
+        
+
+                    
+
+        
+
+                                                                                        
+
+        
+
+                    
+
+        
+
+                                                                                                                                                                                                                            </div>
 
         
 
@@ -2637,7 +2805,12 @@ function App() {
                                             opacity: 0.8
                                         }}
                                     >
-                                        <div className="row-id" style={{fontSize: '0.8rem', color: '#999', paddingLeft: '15px'}}>↳ {detail.id}</div>
+                                        <div className="row-id" style={{fontSize: '0.8rem', color: '#999', paddingLeft: '15px', display: 'flex', alignItems: 'center', gap: '5px'}}>
+                                            ↳ {detail.id}
+                                            {detail.serverId && serverBlacklist.split(',').map(s=>s.trim()).includes(String(detail.serverId)) && 
+                                                <span title="Server auf Blacklist" style={{fontSize: '0.7rem', lineHeight: 1}}>⛔</span>
+                                            }
+                                        </div>
                                         <div className="row-time">
                                             <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
                                                 {new Date(detail.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
@@ -3170,20 +3343,22 @@ function App() {
                 </div>
                 
                 <div className="detail-group" style={{gridColumn: '1 / -1', marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center'}}>
-                    <button 
-                        className="modal-button"
-                        style={{
-                            background: selectedTest.excludeFromStats === 1 ? 'var(--primary-gradient)' : '#666',
-                            color: 'white',
-                            width: '100%'
-                        }}
-                        onClick={() => toggleExcludeStats(selectedTest.id, selectedTest.excludeFromStats !== 1)}
-                    >
-                        {selectedTest.excludeFromStats === 1 
-                            ? '✅ Wieder in Statistik aufnehmen' 
-                            : '🚫 Aus Statistik ausschließen'
-                        }
-                    </button>
+                    {(!selectedTest.groupId || selectedTest.isAggregate === 1) && (
+                        <button 
+                            className="modal-button"
+                            style={{
+                                background: selectedTest.excludeFromStats === 1 ? 'var(--primary-gradient)' : '#666',
+                                color: 'white',
+                                width: '100%'
+                            }}
+                            onClick={() => toggleExcludeStats(selectedTest.id, selectedTest.excludeFromStats !== 1)}
+                        >
+                            {selectedTest.excludeFromStats === 1 
+                                ? '✅ Wieder in Statistik aufnehmen' 
+                                : '🚫 Aus Statistik ausschließen'
+                            }
+                        </button>
+                    )}
 
                     {selectedTest.serverId && (
                         <button 
@@ -3191,7 +3366,8 @@ function App() {
                             style={{
                                 background: serverBlacklist.split(',').map(s=>s.trim()).includes(String(selectedTest.serverId)) ? '#2ecc71' : '#e74c3c', // Grün zum Entfernen, Rot zum Hinzufügen (Warnung)
                                 color: 'white',
-                                width: '100%'
+                                width: '100%',
+                                marginTop: (!selectedTest.groupId || selectedTest.isAggregate === 1) ? '10px' : '0' // Abstand nur wenn der obere Button da ist
                             }}
                             onClick={() => toggleServerBlacklist(selectedTest.serverId)}
                         >
