@@ -778,7 +778,7 @@ app.get('/api/export', (req, res) => {
       return;
     }
 
-    let csvContent = 'ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country,Server ID,Group ID,Is Aggregate\n';
+    let csvContent = 'ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country,Server ID,Group ID,Is Aggregate,Is Manual,Exclude From Stats\n';
     
     rows.forEach(row => {
       const escape = (text) => text ? "" + text.toString().split("\"").join("\"\"") + "" : "";
@@ -795,7 +795,9 @@ app.get('/api/export', (req, res) => {
         escape(row.serverCountry),
         row.serverId || '', // Server ID
         escape(row.groupId || ''), // Group ID
-        row.isAggregate || 0 // Is Aggregate
+        row.isAggregate || 0, // Is Aggregate
+        row.isManual || 0, // Is Manual
+        row.excludeFromStats || 0 // Exclude From Stats
       ].join(',') + '\n';
     });
 
@@ -829,8 +831,8 @@ app.post('/api/import', upload.single('file'), (req, res) => {
                 
                 const stmt = db.prepare(`
                     INSERT OR REPLACE INTO results (
-                        id, timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, serverId, groupId, isAggregate
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        id, timestamp, ping, download, upload, packetLoss, isp, serverLocation, serverCountry, serverId, groupId, isAggregate, isManual, excludeFromStats
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `);
 
                 let errorOccurred = false;
@@ -839,7 +841,7 @@ app.post('/api/import', upload.single('file'), (req, res) => {
                     if (errorOccurred) return;
 
                     // Mapping CSV Header -> DB Columns
-                    // CSV: ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country,Server ID,Group ID,Is Aggregate
+                    // CSV: ID,Timestamp,Ping (ms),Download (Mbps),Upload (Mbps),Packet Loss (%),ISP,Server,Server Country,Server ID,Group ID,Is Aggregate,Is Manual,Exclude From Stats
                     const id = row['ID'];
                     const timestamp = row['Timestamp'];
                     const ping = parseFloat(row['Ping (ms)']) || 0;
@@ -852,9 +854,11 @@ app.post('/api/import', upload.single('file'), (req, res) => {
                     const serverId = row['Server ID'] || null;
                     const groupId = row['Group ID'] || null;
                     const isAggregate = parseInt(row['Is Aggregate']) || 0;
+                    const isManual = parseInt(row['Is Manual']) || 0;
+                    const excludeFromStats = parseInt(row['Exclude From Stats']) || 0;
 
                     if (id && timestamp) {
-                        stmt.run([id, timestamp, ping, download, upload, packetLoss, isp, server, country, serverId, groupId, isAggregate], (err) => {
+                        stmt.run([id, timestamp, ping, download, upload, packetLoss, isp, server, country, serverId, groupId, isAggregate, isManual, excludeFromStats], (err) => {
                             if (err) {
                                 console.error("Import Insert Error:", err);
                                 errorOccurred = true;
