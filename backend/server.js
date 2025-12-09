@@ -97,7 +97,8 @@ function upgradeDatabase() {
         { name: 'uploadBytes', type: 'INTEGER' },
         { name: 'isManual', type: 'INTEGER' }, // 0 = Auto, 1 = Manuell
         { name: 'groupId', type: 'TEXT' },     // UUID für zusammengehörige Tests
-        { name: 'isAggregate', type: 'INTEGER' } // 1 = Berechneter Durchschnittswert
+        { name: 'isAggregate', type: 'INTEGER' }, // 1 = Berechneter Durchschnittswert
+        { name: 'excludeFromStats', type: 'INTEGER' } // 0 = Zählt, 1 = Ignoriert
     ];
 
     columnsToAdd.forEach(col => {
@@ -696,7 +697,7 @@ app.post('/api/settings', (req, res) => {
 
 app.get('/api/history', (req, res) => {
   const limit = req.query.limit ? parseInt(req.query.limit) : null;
-  
+
   let sql = 'SELECT * FROM results ORDER BY timestamp DESC';
   let params = [];
 
@@ -718,6 +719,23 @@ app.get('/api/history', (req, res) => {
     }
     res.json(rows);
   });
+});
+
+// Endpoint um einen Test aus der Statistik auszuschließen (oder wieder aufzunehmen)
+app.patch('/api/results/:id/exclude', (req, res) => {
+    const { id } = req.params;
+    const { exclude } = req.body; // true = ausschließen, false = aufnehmen
+
+    const val = exclude ? 1 : 0;
+    
+    const sql = "UPDATE results SET excludeFromStats = ? WHERE id = ?";
+    db.run(sql, [val, id], function(err) {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json({ message: "Status aktualisiert", changes: this.changes });
+    });
 });
 
 // Endpoint zum Leeren der Datenbank
