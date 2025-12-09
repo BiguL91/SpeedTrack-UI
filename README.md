@@ -23,8 +23,8 @@ Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwind
 *   ⚙️ **Umfassende Einstellungen:** Konfiguriere Test-Intervalle (Cron), Datenvorhaltung (Tage), erwartete Geschwindigkeiten, Toleranzen, Wiederholungsanzahl und -strategie, sowie eine Server-Blacklist bequem über das Dashboard.
 *   💾 **Daten-Management:**
     *   **Persistente Speicherung:** Alle Ergebnisse in einer SQLite-Datenbank.
-    *   **CSV Export:** Lade deine gesamte Testhistorie herunter, inklusive manueller Test- und Blacklist-Status.
-    *   **CSV Import:** Spiele Backups ein oder verschmelze Daten aus anderen Instanzen, wobei die Blacklist- und manuellen Test-Status erhalten bleiben.
+    *   **CSV Export:** Lade deine gesamte Testhistorie herunter, inklusive manueller Test- und Blacklist-Status sowie aller Detailfelder.
+    *   **CSV Import:** Spiele Backups ein oder verschmelze Daten aus anderen Instanzen, wobei alle Status und Details erhalten bleiben.
     *   **Datenbereinigung:** Automatische Löschung alter Testergebnisse nach konfigurierbarer Zeit.
     *   **Datenbank leeren:** Sichere Option zum vollständigen Löschen aller Daten mit vorheriger Backup-Möglichkeit.
 *   🌗 **Dark Mode:** Automatische Erkennung (System) oder manueller Umschalter.
@@ -79,7 +79,13 @@ Die meisten Einstellungen können direkt über die Benutzeroberfläche unter "Ei
 
 ## Updates & Changelog
 
-*   **V1.3.0 (Aktuell):**
+*   **V1.3.1 (Aktuell):**
+    *   **Verbesserungen:**
+        *   **Klarere Aggregat-Details:** Bei aggregierten Testergebnissen (Durchschnittswerten) werden irrelevante Detailfelder (wie exakte Downloadzeit, IP, Link) nun ausgeblendet, da sie für einen Durchschnittswert nicht eindeutig sind.
+        *   **Präzisere Diagramme:** Die Charts filtern nun einzelne Wiederholungsversuche (Kind-Tests) aus und zeigen nur noch die relevanten Hauptergebnisse (Einzeltests und Aggregate) an.
+        *   **Erweiterter CSV-Export:** Der CSV-Export enthält nun alle erweiterten Detailfelder.
+
+*   **V1.3.0:**
     *   **Neue Features:**
         *   **Erweiterte Wiederholungs-Strategie:** Neue Option zur Wahl, ob bei Wiederholungstests der gleiche Server beibehalten (`KEEP`) oder dynamisch ein neuer Server gesucht werden soll (`NEW`, Standard).
         *   **Intelligente Server-Anzeige:** Aggregierte Testergebnisse zeigen nun "Diverse Server" an, wenn mehrere Server in einer Testserie verwendet wurden.
