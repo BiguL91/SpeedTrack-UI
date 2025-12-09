@@ -983,13 +983,13 @@ function App() {
               {
                   label: 'Bestanden',
                   data: passData,
-                  backgroundColor: '#2ecc71',
+                  backgroundColor: 'rgba(46, 204, 113, 0.7)',
                   stack: 'Stack 0',
               },
               {
                   label: 'Nicht Bestanden',
                   data: failData,
-                  backgroundColor: '#e74c3c',
+                  backgroundColor: 'rgba(231, 76, 60, 0.7)',
                   stack: 'Stack 0',
               }
           ]
