@@ -485,6 +485,25 @@ async function runScheduledTest() {
                   aggregateResultObj.server.location = `(Genutzte Server: ${uniqueServerIds.length})`;
                   aggregateResultObj.server.country = "Diverse";
                   aggregateResultObj.server.id = null; // Keine spezifische ID
+                  aggregateResultObj.server.host = null;
+                  aggregateResultObj.server.ip = null;
+                  aggregateResultObj.server.port = null;
+              }
+              
+              // Weitere Felder für Aggregat unkenntlich machen oder leeren
+              if (aggregateResultObj.download) {
+                  aggregateResultObj.download.elapsed = null;
+                  aggregateResultObj.download.bytes = 0;
+              }
+              if (aggregateResultObj.upload) {
+                  aggregateResultObj.upload.elapsed = null;
+                  aggregateResultObj.upload.bytes = 0;
+              }
+              if (aggregateResultObj.result) {
+                  aggregateResultObj.result.url = null;
+              }
+              if (aggregateResultObj.interface) {
+                  aggregateResultObj.interface.externalIp = null; 
               }
           }
 
