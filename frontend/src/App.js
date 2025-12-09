@@ -83,6 +83,10 @@ function App() {
   // State für das Ergebnis-Modal nach manuellem Test
   const [manualResult, setManualResult] = useState(null); // Das Ergebnis-Objekt
   
+  // State für vergrößerten Chart
+  const [expandedChart, setExpandedChart] = useState(null); // 'speed' oder 'ping' oder null
+  const [expandedChartLimit, setExpandedChartLimit] = useState(50); // Standard: 50 Einträge im vergrößerten Chart
+
   // State für aufgeklappte Gruppe (ID)
   const [expandedGroupId, setExpandedGroupId] = useState(null);
 
@@ -607,6 +611,21 @@ function App() {
     return () => clearInterval(intervalId); 
   }, [loading, fetchHistory, fetchSettings, view]); 
 
+  // Auto-Nachladen von Daten für Expanded Chart, wenn nötig
+  useEffect(() => {
+    if (expandedChart) {
+        // Wenn Modal offen ist und wir "Alle" (0) wollen oder mehr als wir haben
+        if (expandedChartLimit === 0 || expandedChartLimit > history.length) {
+            // Um Endlosschleifen zu vermeiden, prüfen wir, ob wir nicht schon "Alle" geladen haben (wenn history < limit aber DB leer ist).
+            // Aber fetchHistory ist schlau genug bzw. wir machen es einfach.
+            // Um Flackern zu vermeiden, laden wir nur wenn nötig.
+            
+            // Limit für Fetch: Wenn expandedChartLimit 0 ist, lade 0 (alles). Sonst das Limit.
+            fetchHistory(expandedChartLimit);
+        }
+    }
+  }, [expandedChart, expandedChartLimit, history.length, fetchHistory]);
+
   // Neue runTest Funktion mit SSE
   const runTest = () => {
     setLoading(true);
@@ -669,77 +688,82 @@ function App() {
     };
   };
 
-  // Chart-Daten vorbereiten
-  // History ist: [Neueste, ..., Älteste]
-  // Wir wollen im Chart: [Älteste, ..., Neueste]
-  // Aber nur die letzten X (chartDataLimit)
-  
-  const chartDataSource = chartDataLimit === 0 ? history : history.slice(0, chartDataLimit);
-  const chartDataReversed = [...chartDataSource].reverse();
-  
-  const labels = chartDataReversed.map(item => new Date(item.timestamp).toLocaleTimeString());
+  // Chart-Daten Helper Funktion
+  const getChartData = (limit) => {
+      const source = limit === 0 ? history : history.slice(0, limit);
+      const reversed = [...source].reverse();
+      const labels = reversed.map(item => new Date(item.timestamp).toLocaleTimeString());
+      
+      const speedData = {
+        labels,
+        datasets: [
+          {
+            label: 'Download (Mbps)',
+            data: reversed.map(item => item.download),
+            borderColor: 'rgb(53, 162, 235)',
+            backgroundColor: 'rgba(53, 162, 235, 0.2)',
+            yAxisID: 'y',
+            tension: 0.4,
+            fill: true,
+          },
+          {
+            label: 'Upload (Mbps)',
+            data: reversed.map(item => item.upload),
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            yAxisID: 'y',
+            tension: 0.4,
+            fill: true,
+          },
+          // Grenzwerte (Nur anzeigen wenn > 0)
+          ...(parseFloat(expectedDownload) > 0 ? [{
+            label: 'Soll Download',
+            data: Array(reversed.length).fill(parseFloat(expectedDownload)),
+            borderColor: '#f39c12',
+            borderDash: [10, 5],
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false,
+            yAxisID: 'y',
+          }] : []),
+          ...(parseFloat(expectedUpload) > 0 ? [{
+            label: 'Soll Upload',
+            data: Array(reversed.length).fill(parseFloat(expectedUpload)),
+            borderColor: '#2ecc71',
+            borderDash: [10, 5],
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false,
+            yAxisID: 'y',
+          }] : [])
+        ],
+      };
 
-  // Daten für Geschwindigkeits-Chart
-  const speedData = {
-    labels,
-    datasets: [
-      {
-        label: 'Download (Mbps)',
-        data: chartDataReversed.map(item => item.download),
-        borderColor: 'rgb(53, 162, 235)', // 100% Deckkraft
-        backgroundColor: 'rgba(53, 162, 235, 0.2)',
-        yAxisID: 'y',
-        tension: 0.4,
-        fill: true,
-      },
-      {
-        label: 'Upload (Mbps)',
-        data: chartDataReversed.map(item => item.upload),
-        borderColor: 'rgb(255, 99, 132)', // 100% Deckkraft
-        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-        yAxisID: 'y',
-        tension: 0.4,
-        fill: true,
-      },
-      // Grenzwerte (Nur anzeigen wenn > 0)
-      ...(parseFloat(expectedDownload) > 0 ? [{
-        label: 'Soll Download',
-        data: Array(chartDataReversed.length).fill(parseFloat(expectedDownload)),
-        borderColor: '#f39c12', // Orange
-        borderDash: [10, 5], // Längere Striche
-        borderWidth: 2, // Dicker
-        pointRadius: 0, // Keine Punkte
-        fill: false,
-        yAxisID: 'y',
-      }] : []),
-      ...(parseFloat(expectedUpload) > 0 ? [{
-        label: 'Soll Upload',
-        data: Array(chartDataReversed.length).fill(parseFloat(expectedUpload)),
-        borderColor: '#2ecc71', // Grün
-        borderDash: [10, 5],
-        borderWidth: 2, // Dicker
-        pointRadius: 0,
-        fill: false,
-        yAxisID: 'y',
-      }] : [])
-    ],
+      const pingData = {
+        labels,
+        datasets: [
+          {
+            label: 'Ping (ms)',
+            data: reversed.map(item => item.ping),
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            yAxisID: 'y',
+            tension: 0.4,
+            fill: true,
+          },
+        ],
+      };
+
+      return { speedData, pingData };
   };
 
-  // Daten für Ping-Chart
-  const pingData = {
-    labels,
-    datasets: [
-      {
-        label: 'Ping (ms)',
-        data: chartDataReversed.map(item => item.ping),
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        yAxisID: 'y',
-        tension: 0.4,
-        fill: true,
-      },
-    ],
-  };
+  // Dashboard Daten (mit kleinem Limit)
+  const dashboardChartData = getChartData(chartDataLimit);
+  
+  // Expanded Chart Daten (mit eigenem Limit)
+  const expandedChartData = getChartData(expandedChartLimit);
+
+  // Optionen für Geschwindigkeit
 
   // Optionen für Geschwindigkeit
   const speedOptions = {
@@ -933,41 +957,71 @@ function App() {
         {/* CHARTS WRAPPER */}
         {history.length > 0 && (
             <div className="charts-row">
-            <div className="card chart-container" style={{display: 'flex', flexDirection: 'column'}}>
+            <div className="card chart-container" style={{display: 'flex', flexDirection: 'column', position: 'relative'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
                     <h3 style={{margin: 0, fontSize: '1.1rem', color: 'var(--text-color)'}}>Geschwindigkeit</h3>
-                    <div style={{display: 'flex', gap: '5px'}}>
-                        {[5, 10, 20, 50].map(limit => (
-                            <button 
-                                key={limit}
-                                onClick={() => setChartDataLimit(limit)}
-                                style={{
-                                    background: chartDataLimit === limit ? 'var(--primary-gradient)' : 'transparent',
-                                    color: chartDataLimit === limit ? 'white' : 'var(--text-secondary)',
-                                    border: '1px solid ' + (chartDataLimit === limit ? 'transparent' : 'var(--border-color)'),
-                                    padding: '2px 8px',
-                                    borderRadius: '10px',
-                                    cursor: 'pointer',
-                                    fontSize: '0.75rem',
-                                    fontWeight: '600',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                {limit === 0 ? 'Alle' : limit}
-                            </button>
-                        ))}
+                    <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+                        <button 
+                            onClick={() => setExpandedChart('speed')}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '1.2rem',
+                                padding: '0 5px',
+                                color: 'var(--text-secondary)'
+                            }}
+                            title="Vergrößern"
+                        >
+                            🔍
+                        </button>
+                        <div style={{display: 'flex', gap: '5px'}}>
+                            {[5, 10, 20, 50].map(limit => (
+                                <button 
+                                    key={limit}
+                                    onClick={() => setChartDataLimit(limit)}
+                                    style={{
+                                        background: chartDataLimit === limit ? 'var(--primary-gradient)' : 'transparent',
+                                        color: chartDataLimit === limit ? 'white' : 'var(--text-secondary)',
+                                        border: '1px solid ' + (chartDataLimit === limit ? 'transparent' : 'var(--border-color)'),
+                                        padding: '2px 8px',
+                                        borderRadius: '10px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '600',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {limit === 0 ? 'Alle' : limit}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
                 <div style={{flex: 1, minHeight: 0}}>
-                    <Line key={`speed-${theme}`} options={speedOptions} data={speedData} />
+                    <Line key={`speed-${theme}`} options={speedOptions} data={dashboardChartData.speedData} />
                 </div>
             </div>
-            <div className="card chart-container" style={{display: 'flex', flexDirection: 'column'}}>
-                <div style={{marginBottom: '15px'}}>
+            <div className="card chart-container" style={{display: 'flex', flexDirection: 'column', position: 'relative'}}>
+                <div style={{marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                      <h3 style={{margin: 0, fontSize: '1.1rem', color: 'var(--text-color)'}}>Ping</h3>
+                     <button 
+                        onClick={() => setExpandedChart('ping')}
+                        style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '1.2rem',
+                            padding: '0 5px',
+                            color: 'var(--text-secondary)'
+                        }}
+                        title="Vergrößern"
+                    >
+                        🔍
+                    </button>
                 </div>
                 <div style={{flex: 1, minHeight: 0}}>
-                    <Line key={`ping-${theme}`} options={pingOptions} data={pingData} />
+                    <Line key={`ping-${theme}`} options={pingOptions} data={dashboardChartData.pingData} />
                 </div>
             </div>
             </div>
@@ -1861,6 +1915,90 @@ function App() {
         </div>
       )}
 
+      {/* EXPANDED CHART MODAL */}
+      {expandedChart && (
+        <div className="modal-overlay" onClick={() => setExpandedChart(null)}>
+          <div 
+            className="modal-content card" 
+            style={{
+                width: '95%', 
+                height: '90%', 
+                maxWidth: 'none', 
+                display: 'flex', 
+                flexDirection: 'column',
+                padding: '20px'
+            }} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
+                    <h2 style={{margin: 0}}>{expandedChart === 'speed' ? 'Geschwindigkeit Detail' : 'Ping Detail'}</h2>
+                    
+                    <div style={{display: 'flex', gap: '5px'}}>
+                        {[50, 100, 200, 500, 0].map(limit => (
+                            <button 
+                                key={limit}
+                                onClick={() => setExpandedChartLimit(limit)}
+                                style={{
+                                    background: expandedChartLimit === limit ? 'var(--primary-gradient)' : 'transparent',
+                                    color: expandedChartLimit === limit ? 'white' : 'var(--text-secondary)',
+                                    border: '1px solid ' + (expandedChartLimit === limit ? 'transparent' : 'var(--border-color)'),
+                                    padding: '4px 10px',
+                                    borderRadius: '15px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.8rem',
+                                    fontWeight: '600',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {limit === 0 ? 'Alle' : limit}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <button 
+                    onClick={() => setExpandedChart(null)} 
+                    style={{background: 'none', border: 'none', fontSize: '2rem', cursor: 'pointer', color: 'var(--text-color)', lineHeight: 0.8}}
+                >
+                    &times;
+                </button>
+            </div>
+            <div style={{flex: 1, minHeight: 0, position: 'relative'}}>
+                {expandedChart === 'speed' && (
+                    <Line 
+                        options={{
+                            ...speedOptions, 
+                            maintainAspectRatio: false,
+                            plugins: {
+                                ...speedOptions.plugins,
+                                title: { display: false } // Titel im Modal nicht doppelt
+                            }
+                        }} 
+                        data={expandedChartData.speedData} 
+                    />
+                )}
+                {expandedChart === 'ping' && (
+                    <Line 
+                        options={{
+                            ...pingOptions, 
+                            maintainAspectRatio: false,
+                             plugins: {
+                                ...pingOptions.plugins,
+                                title: { display: false }
+                            }
+                        }} 
+                        data={expandedChartData.pingData} 
+                    />
+                )}
+            </div>
+            <div style={{textAlign: 'center', marginTop: '10px', color: 'var(--text-secondary)', fontSize: '0.8rem'}}>
+                Tipp: Nutze Mausrad zum Zoomen und Ziehen zum Verschieben.
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* SETTINGS MODAL */}
       {showSettings && (
         <div className="modal-overlay">
