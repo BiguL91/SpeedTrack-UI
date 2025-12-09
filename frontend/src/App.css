@@ -841,7 +841,8 @@ button.start-btn:disabled {
 /* Chart Container */
 .chart-container {
   padding: 20px;
-  height: 400px;
+  min-height: 400px; /* Mindesthöhe statt fester Höhe */
+  height: auto;
 }
 
 /* Toast Notification */
