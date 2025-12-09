@@ -2287,7 +2287,23 @@ function App() {
                     <strong style={{color: 'var(--text-secondary)', fontSize: '0.8rem'}}>Server IP</strong>
                     <div style={{fontFamily: 'monospace'}}>{selectedTest.serverIp || '-'}</div>
                 </div>
-
+                
+                <div className="detail-group" style={{gridColumn: '1 / -1', marginTop: '20px', display: 'flex', justifyContent: 'center'}}>
+                    <button 
+                        className="modal-button"
+                        style={{
+                            background: selectedTest.excludeFromStats === 1 ? 'var(--primary-gradient)' : '#666',
+                            color: 'white',
+                            width: '100%'
+                        }}
+                        onClick={() => toggleExcludeStats(selectedTest.id, selectedTest.excludeFromStats !== 1)}
+                    >
+                        {selectedTest.excludeFromStats === 1 
+                            ? '✅ Wieder in Statistik aufnehmen' 
+                            : '🚫 Aus Statistik ausschließen'
+                        }
+                    </button>
+                </div>
             </div>
           </div>
         </div>
