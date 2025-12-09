@@ -761,7 +761,10 @@ function App() {
 
   // Chart-Daten Helper Funktion
   const getChartData = (limit) => {
-      const source = limit === 0 ? history : history.slice(0, limit);
+      // Filtere Retry-Versuche raus, zeige nur Aggregate oder Einzeltests
+      const filteredHistory = history.filter(t => t.isAggregate === 1 || !t.groupId);
+      
+      const source = limit === 0 ? filteredHistory : filteredHistory.slice(0, limit);
       const reversed = [...source].reverse();
       const labels = reversed.map(item => new Date(item.timestamp).toLocaleTimeString());
       
