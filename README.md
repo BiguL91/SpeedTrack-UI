@@ -5,7 +5,9 @@ Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwind
 ## Features
 
 *   🚀 **Automatisierte Speedtests:** Führt Tests im Hintergrund durch, konfigurierbare Intervalle über die UI.
-*   🛡️ **Qualitätssicherung & Wiederholung:** Definiere erwartete Geschwindigkeiten und Toleranz. Bei Unterschreitung werden Tests automatisch mehrfach wiederholt. Das Ergebnis (Durchschnitt, Minimum oder Maximum) dieser Serie wird dann gespeichert.
+*   🛡️ **Qualitätssicherung & Wiederholung:** Definiere erwartete Geschwindigkeiten und Toleranz. Bei Unterschreitung werden Tests automatisch mehrfach wiederholt. 
+    *   Wähle Strategien für das Endergebnis (Durchschnitt, Minimum, Maximum).
+    *   **Neu:** Konfiguriere, ob bei Wiederholungen der gleiche Server genutzt oder ein neuer gesucht werden soll.
 *   🚫 **Server Blacklist:** Schließe bestimmte Speedtest-Server-IDs von automatischen Tests aus. Konfigurierbar über die UI und direkt aus der Test-Detailansicht.
 *   📊 **Interaktive Diagramme:** 
     *   Zoom & Pan Funktionen.
@@ -72,18 +74,27 @@ Die meisten Einstellungen können direkt über die Benutzeroberfläche unter "Ei
 | `RETRY_COUNT` | 3 | Anzahl der Wiederholungen, falls der Wert die Toleranz unterschreitet. |
 | `RETRY_DELAY` | 30 | Pause in Sekunden zwischen den Wiederholungen. |
 | `RETRY_STRATEGY` | AVG | Strategie zur Berechnung des Endergebnisses (AVG, MIN, MAX). |
+| `RETRY_SERVER_STRATEGY` | NEW | Strategie für Serverwahl bei Wiederholung (KEEP = Gleicher, NEW = Neuer Server). |
 | `SERVER_BLACKLIST` | (leer) | Kommaseparierte Server-IDs, die bei automatischen Tests ignoriert werden. |
 
 ## Updates & Changelog
 
-*   **V1.2.1 (Aktuell):**
+*   **V1.3.0 (Aktuell):**
+    *   **Neue Features:**
+        *   **Erweiterte Wiederholungs-Strategie:** Neue Option zur Wahl, ob bei Wiederholungstests der gleiche Server beibehalten (`KEEP`) oder dynamisch ein neuer Server gesucht werden soll (`NEW`, Standard).
+        *   **Intelligente Server-Anzeige:** Aggregierte Testergebnisse zeigen nun "Diverse Server" an, wenn mehrere Server in einer Testserie verwendet wurden.
+    *   **UI/UX Verbesserungen:**
+        *   Blacklist-Icons (`⛔`) jetzt auch in den aufgeklappten Detail-Zeilen der Testlisten sichtbar.
+        *   Optimierte Darstellung der Detail-Zeilen (eingerückt, rechtsbündig) zur besseren Unterscheidung von Haupttests.
+        *   Verbesserte Navigation: Klick auf Pfeil/ID klappt Gruppe auf, Klick auf Rest der Zeile öffnet Details (auch bei Aggregaten).
+
+*   **V1.2.1:**
     *   **Features:**
         *   **Server Blacklist:** Implementierung einer Funktion zum Ausschließen spezifischer Speedtest-Server-IDs von automatischen Tests (konfigurierbar über UI). Icons visualisieren geblacklistete Server in den Listen.
     *   **Verbesserungen:**
         *   Balkendiagramm "Tests pro Tag" zeigt nun mehr historische Daten an und verwendet sanftere Farbtöne.
         *   CSV Import/Export behält nun den Status von manuellen Tests (`isManual`) und den Statistik-Ausschluss (`excludeFromStats`) bei.
         *   Verbesserung des Styling für Eingabefelder im Einstellungs-Modal.
-    *   **Dokumentation:** README aktualisiert, um neue Features und die manuelle Installation hervorzuheben.
 
 *   **V1.2.0:**
     *   **Erweiterte Charts:**
