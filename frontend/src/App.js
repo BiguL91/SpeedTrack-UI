@@ -1768,14 +1768,14 @@ function App() {
                         </select>
                         
                         <label>Startzeit / Referenzzeit:</label>
-                        <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '5px'}}>
-                        Der Test-Zyklus orientiert sich an dieser Zeit.
-                        </div>
                         <input 
                             type="time" 
                             value={startTime}
                             onChange={(e) => setStartTime(e.target.value)}
                         />
+                        <div style={{fontSize: '0.8rem', color: '#666', marginTop: '5px'}}>
+                            Der Test-Zyklus orientiert sich an dieser Zeit.
+                        </div>
 
                         <p style={{fontSize: '0.8rem', color: '#666'}}>
                             Generierter Cron-Job: <code>{generateCron(intervalBase, startTime)}</code>
@@ -1812,9 +1812,6 @@ function App() {
 
                         <div style={{marginTop: '15px'}}>
                             <label>Toleranz (%):</label>
-                            <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '5px'}}>
-                                Abweichung, ab der wiederholt wird (z.B. 10%).
-                            </div>
                             <input 
                                 type="number" 
                                 min="0"
@@ -1823,6 +1820,9 @@ function App() {
                                 onChange={(e) => setTolerance(e.target.value)}
                                 style={{width: '100%', padding: '10px'}}
                             />
+                            <div style={{fontSize: '0.8rem', color: '#666', marginTop: '5px'}}>
+                                Abweichung, ab der wiederholt wird (z.B. 10%).
+                            </div>
                         </div>
 
                         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px'}}>
@@ -1872,9 +1872,6 @@ function App() {
 
                     <div className="form-group" style={{marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '20px'}}>
                         <label>Daten aufbewahren für (Tage):</label>
-                        <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '5px'}}>
-                        Alte Tests werden automatisch gelöscht. 0 = Nie löschen.
-                        </div>
                         <input 
                             type="number" 
                             min="0"
@@ -1882,6 +1879,9 @@ function App() {
                             onChange={(e) => setRetentionPeriod(e.target.value)}
                             style={{width: '100%', padding: '10px'}}
                         />
+                        <div style={{fontSize: '0.8rem', color: '#666', marginTop: '5px'}}>
+                            Alte Tests werden automatisch gelöscht. 0 = Nie löschen.
+                        </div>
                     </div>
 
                     <div className="modal-actions" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '30px'}}>
