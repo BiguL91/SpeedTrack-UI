@@ -1845,7 +1845,7 @@ function App() {
 
         
 
-                                                                                                                                                                                <li 
+                                                                                                                                                                                                                                                                        <li 
 
         
 
@@ -1853,7 +1853,7 @@ function App() {
 
         
 
-                                                                                        
+                                                                                                                                                                                
 
         
 
@@ -1861,7 +1861,7 @@ function App() {
 
         
 
-                                                                                                                                                                                    key={detail.id} 
+                                                                                                                                                                                                                                                                            key={detail.id} 
 
         
 
@@ -1869,7 +1869,7 @@ function App() {
 
         
 
-                                                                                        
+                                                                                                                                                                                
 
         
 
@@ -1877,7 +1877,7 @@ function App() {
 
         
 
-                                                                                                                                                                                    className={`recent-tests-row`} 
+                                                                                                                                                                                                                                                                            className={`recent-tests-row detail-row`} 
 
         
 
@@ -1885,7 +1885,7 @@ function App() {
 
         
 
-                                                                                        
+                                                                                                                                                                                
 
         
 
@@ -1893,7 +1893,7 @@ function App() {
 
         
 
-                                                                                                                                                                                    onClick={() => setSelectedTest(detail)} 
+                                                                                                                                                                                                                                                                            onClick={() => setSelectedTest(detail)} 
 
         
 
@@ -1901,7 +1901,7 @@ function App() {
 
         
 
-                                                                                        
+                                                                                                                                                                                
 
         
 
@@ -1909,7 +1909,7 @@ function App() {
 
         
 
-                                                                                                                                                                                    style={{
+                                                                                                                                                                                                                                                                            style={{
 
         
 
@@ -2800,7 +2800,7 @@ function App() {
                                 {isExpanded && details.map(detail => (
                                     <li 
                                         key={detail.id} 
-                                        className={`recent-tests-row full-history-row`} 
+                                        className={`recent-tests-row full-history-row detail-row`} 
                                         onClick={() => setSelectedTest(detail)} 
                                         style={{
                                             cursor: 'pointer', 
