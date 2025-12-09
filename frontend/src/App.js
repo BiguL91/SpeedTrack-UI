@@ -2879,7 +2879,6 @@ function App() {
                                     type="text" 
                                     value={serverBlacklist} 
                                     onChange={(e) => setServerBlacklist(e.target.value)}
-                                    style={{width: '100%', padding: '10px', marginTop: '5px'}}
                                     placeholder="z.B. 1234, 5678"
                                 />
                                 <div style={{fontSize: '0.8rem', color: '#666', marginTop: '0'}}>

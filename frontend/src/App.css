@@ -740,7 +740,8 @@ button.start-btn:disabled {
 
 .modal-content select,
 .modal-content input[type="time"],
-.modal-content input[type="number"] {
+.modal-content input[type="number"],
+.modal-content input[type="text"] {
     background: var(--metric-bg);
     color: var(--text-color);
     border: 2px solid var(--border-color);
