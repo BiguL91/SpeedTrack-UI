@@ -6,10 +6,16 @@ Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwind
 
 *   🚀 **Automatisierte Speedtests:** Führt Tests im Hintergrund durch, konfigurierbare Intervalle über die UI.
 *   🛡️ **Qualitätssicherung & Wiederholung:** Definiere erwartete Geschwindigkeiten und Toleranz. Bei Unterschreitung werden Tests automatisch mehrfach wiederholt. Das Ergebnis (Durchschnitt, Minimum oder Maximum) dieser Serie wird dann gespeichert.
-*   📊 **Interaktive Diagramme:** Zoom & Pan Funktionen, dynamische Datenauswahl (letzte 5, 10, 20... Tests) und modernes Design.
+*   📊 **Interaktive Diagramme:** 
+    *   Zoom & Pan Funktionen.
+    *   **Soll-Werte Visualisierung:** Zeigt eingestellte Grenzwerte als Referenzlinien im Chart.
+    *   **Vollbild-Modus:** Klicke auf ein Diagramm für eine vergrößerte Detailansicht mit dynamischem Nachladen von Daten.
 *   ⚡ **Live-Test:** Starte manuelle Tests und verfolge Ping, Download und Upload in Echtzeit.
-*   🔍 **Detaillierte Historie:** Eine erweiterte Ansicht zeigt alle Testergebnisse an, inklusive aufgeklappter Wiederholungstests.
-*   📦 **Gruppierte Testergebnisse:** Aggregierte Ergebnisse von Wiederholungen können aufgeklappt werden, um die einzelnen Messungen der Testserie anzuzeigen.
+    *   **Statistik-Option:** Entscheide nach einem manuellen Test, ob er in die Statistik einfließen soll.
+*   🔍 **Detaillierte Historie & Filter:** 
+    *   Filtere Ergebnisse nach Typ (Manuell/Automatisch) und Status (Gewertet/Ignoriert).
+    *   Erweiterte Ansicht zeigt alle Testergebnisse an, inklusive aufgeklappter Wiederholungstests.
+*   📦 **Gruppierte Testergebnisse:** Aggregierte Ergebnisse von Wiederholungen können aufgeklappt werden.
 *   ⚙️ **Umfassende Einstellungen:** Konfiguriere Test-Intervalle (Cron), Datenvorhaltung (Tage), erwartete Geschwindigkeiten, Toleranzen, Wiederholungsanzahl und -strategie bequem über das Dashboard.
 *   💾 **Daten-Management:**
     *   **Persistente Speicherung:** Alle Ergebnisse in einer SQLite-Datenbank.
@@ -85,25 +91,23 @@ Die meisten Einstellungen können direkt über die Benutzeroberfläche unter "Ei
 
 ## Updates & Changelog
 
-*   **V1.3 (Aktuell):**
-    *   **Qualitätssicherung & Wiederholungs-Logik:** Einstellbare Referenzwerte, Toleranz, Wiederholungen, Strategie.
-    *   **Erweiterte Historie:** Aufklappbare Gruppen für Wiederholungstests im Dashboard und der vollständigen Historie.
-    *   **Daten-Management:** Konfigurierbare Datenvorhaltung, sicheres Leeren der Datenbank mit Backup-Option.
-    *   **CSV Import/Export:** Importfunktion für Testergebnisse, Export erweitert um `groupId` und `isAggregate`.
-    *   **UI/UX Verbesserungen:**
-        *   Layout der Dashboard-Karten bei leerer DB verbessert.
-        *   Platzierung des "Nächster Test" Badges.
-        *   Anzeige des "Letzter Test" Zeitstempels mit Jahr.
-        *   Verbessertes Styling für Buttons und Icons (Settings-Modal, Import/Export, Historie).
+*   **V1.2.0 (Aktuell):**
+    *   **Erweiterte Charts:**
+        *   Anzeige von Soll-Werten (Download/Upload) als Referenzlinien.
+        *   **Klick-to-Zoom:** Vollbildmodus für Diagramme mit dynamischem Nachladen von historischen Daten.
+    *   **Filter & Organisation:**
+        *   Filterung nach Typ (Manuell/Automatisch) und Status (Gewertet/Ignoriert) im Dashboard und der Historie.
+        *   Option zum Ausschließen von manuellen Testergebnissen aus der Statistik.
+        *   Verbessertes Layout der Testliste (Icons für Status/Typ).
+    *   **Stabilität & Sicherheit:**
+        *   Timeouts für Speedtest-Prozesse (verhindert Hängenbleiben).
+        *   Validierung von Eingabewerten in den Einstellungen.
+    *   **UI:** Footer mit Versionsanzeige.
 
-*   **V1.2:**
-    *   Detail-Ansicht für Testergebnisse (Jitter, IP, Datenvolumen).
-    *   Unterscheidung zwischen manuellen (👤) und automatischen (🤖) Tests in der Liste.
-    *   Einstellungs-Modal für Test-Intervalle.
-    *   Interaktive Charts mit Zoom-Funktion.
-*   **V1.1:**
+*   **V1.1.0:**
+    *   Qualitätssicherung & Wiederholungs-Logik.
+    *   Erweiterte Historie & CSV Import/Export.
     *   Datenbank-Persistenz Fix für Docker.
-    *   Relative API-Pfade für einfachereres Deployment.
 
 ## Technologien
 
