@@ -79,7 +79,15 @@ Die meisten Einstellungen können direkt über die Benutzeroberfläche unter "Ei
 
 ## Updates & Changelog
 
-*   **V1.3.1 (Aktuell):**
+*   **V1.3.2 (Aktuell):**
+    *   **Refactoring & Performance:**
+        *   **Modularisierung:** Umfangreiche Überarbeitung der Frontend-Architektur. Aufteilung der großen App-Komponente in spezialisierte Module (HistoryTable, Charts, Modals) für bessere Wartbarkeit.
+    *   **Bugfixes & UX:**
+        *   **Chart-Filterung:** Ignorierte Tests (`excludeFromStats`) werden nun korrekt aus den Linien- und Balkendiagrammen ausgeblendet.
+        *   **Responsivität:** Das Dashboard aktualisiert sich nun alle 30 Sekunden (vorher 10s) und reagiert sofort auf Benutzeraktionen wie das Ausschließen von Tests.
+        *   **Stabilisierung:** Fix für Listenansicht-Flackern beim Filtern.
+
+*   **V1.3.1:**
     *   **Verbesserungen:**
         *   **Klarere Aggregat-Details:** Bei aggregierten Testergebnissen (Durchschnittswerten) werden irrelevante Detailfelder (wie exakte Downloadzeit, IP, Link) nun ausgeblendet, da sie für einen Durchschnittswert nicht eindeutig sind.
         *   **Präzisere Diagramme:** Die Charts filtern nun einzelne Wiederholungsversuche (Kind-Tests) aus und zeigen nur noch die relevanten Hauptergebnisse (Einzeltests und Aggregate) an.
