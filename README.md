@@ -6,45 +6,29 @@ Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwind
 
 *   🚀 **Automatisierte Speedtests:** Führt Tests im Hintergrund durch, konfigurierbare Intervalle über die UI.
 *   🛡️ **Qualitätssicherung & Wiederholung:** Definiere erwartete Geschwindigkeiten und Toleranz. Bei Unterschreitung werden Tests automatisch mehrfach wiederholt. Das Ergebnis (Durchschnitt, Minimum oder Maximum) dieser Serie wird dann gespeichert.
+*   🚫 **Server Blacklist:** Schließe bestimmte Speedtest-Server-IDs von automatischen Tests aus. Konfigurierbar über die UI und direkt aus der Test-Detailansicht.
 *   📊 **Interaktive Diagramme:** 
     *   Zoom & Pan Funktionen.
     *   **Soll-Werte Visualisierung:** Zeigt eingestellte Grenzwerte als Referenzlinien im Chart.
     *   **Vollbild-Modus:** Klicke auf ein Diagramm für eine vergrößerte Detailansicht mit dynamischem Nachladen von Daten.
+    *   **Tests pro Tag Übersicht:** Neues Balkendiagramm visualisiert die Anzahl der bestandenen und nicht bestandenen Tests pro Tag.
 *   ⚡ **Live-Test:** Starte manuelle Tests und verfolge Ping, Download und Upload in Echtzeit.
     *   **Statistik-Option:** Entscheide nach einem manuellen Test, ob er in die Statistik einfließen soll.
 *   🔍 **Detaillierte Historie & Filter:** 
     *   Filtere Ergebnisse nach Typ (Manuell/Automatisch) und Status (Gewertet/Ignoriert).
     *   Erweiterte Ansicht zeigt alle Testergebnisse an, inklusive aufgeklappter Wiederholungstests.
 *   📦 **Gruppierte Testergebnisse:** Aggregierte Ergebnisse von Wiederholungen können aufgeklappt werden.
-*   ⚙️ **Umfassende Einstellungen:** Konfiguriere Test-Intervalle (Cron), Datenvorhaltung (Tage), erwartete Geschwindigkeiten, Toleranzen, Wiederholungsanzahl und -strategie bequem über das Dashboard.
+*   ⚙️ **Umfassende Einstellungen:** Konfiguriere Test-Intervalle (Cron), Datenvorhaltung (Tage), erwartete Geschwindigkeiten, Toleranzen, Wiederholungsanzahl und -strategie, sowie eine Server-Blacklist bequem über das Dashboard.
 *   💾 **Daten-Management:**
     *   **Persistente Speicherung:** Alle Ergebnisse in einer SQLite-Datenbank.
-    *   **CSV Export:** Lade deine gesamte Testhistorie herunter.
-    *   **CSV Import:** Spiele Backups ein oder verschmelze Daten aus anderen Instanzen.
+    *   **CSV Export:** Lade deine gesamte Testhistorie herunter, inklusive manueller Test- und Blacklist-Status.
+    *   **CSV Import:** Spiele Backups ein oder verschmelze Daten aus anderen Instanzen, wobei die Blacklist- und manuellen Test-Status erhalten bleiben.
     *   **Datenbereinigung:** Automatische Löschung alter Testergebnisse nach konfigurierbarer Zeit.
     *   **Datenbank leeren:** Sichere Option zum vollständigen Löschen aller Daten mit vorheriger Backup-Möglichkeit.
 *   🌗 **Dark Mode:** Automatische Erkennung (System) oder manueller Umschalter.
 *   📱 **Responsive:** Optimiert für Desktop und Mobile.
 
-## Installation
-
-### Option A: Docker (Empfohlen)
-
-1.  Klone das Repository:
-    ```bash
-    git clone https://github.com/BiguL91/SpeedTest-Tracker.git
-    cd SpeedTest-Tracker
-    ```
-
-2.  Starte den Container:
-    ```bash
-    docker-compose up -d --build
-    ```
-
-3.  Öffne `http://localhost:8080` im Browser.
-    *(Daten werden im Ordner `./data` persistent gespeichert)*
-
-### Option B: Manuell (Node.js)
+## Installation (Manuell)
 
 Voraussetzungen:
 *   Node.js (v16+)
@@ -56,21 +40,21 @@ Voraussetzungen:
     cd SpeedTest-Tracker
     ```
 
-2.  **Backend einrichten:**
+2.  **Backend einrichten und starten:**
     ```bash
     cd backend
     npm install
-    # Starte Server (Port 5000)
     npm start
+    # Der Server läuft standardmäßig auf Port 5000.
     ```
 
-3.  **Frontend einrichten:**
-    (In neuem Terminal)
+3.  **Frontend einrichten und starten:**
+    (In einem *neuen* Terminal)
     ```bash
     cd frontend
     npm install
-    # Starte React Dev Server (Port 3000)
     npm start
+    # Das Frontend läuft standardmäßig auf Port 3000. Öffne http://localhost:3000 im Browser.
     ```
 
 ## Konfiguration
@@ -88,10 +72,20 @@ Die meisten Einstellungen können direkt über die Benutzeroberfläche unter "Ei
 | `RETRY_COUNT` | 3 | Anzahl der Wiederholungen, falls der Wert die Toleranz unterschreitet. |
 | `RETRY_DELAY` | 30 | Pause in Sekunden zwischen den Wiederholungen. |
 | `RETRY_STRATEGY` | AVG | Strategie zur Berechnung des Endergebnisses (AVG, MIN, MAX). |
+| `SERVER_BLACKLIST` | (leer) | Kommaseparierte Server-IDs, die bei automatischen Tests ignoriert werden. |
 
 ## Updates & Changelog
 
-*   **V1.2.0 (Aktuell):**
+*   **V1.2.1 (Aktuell):**
+    *   **Features:**
+        *   **Server Blacklist:** Implementierung einer Funktion zum Ausschließen spezifischer Speedtest-Server-IDs von automatischen Tests (konfigurierbar über UI). Icons visualisieren geblacklistete Server in den Listen.
+    *   **Verbesserungen:**
+        *   Balkendiagramm "Tests pro Tag" zeigt nun mehr historische Daten an und verwendet sanftere Farbtöne.
+        *   CSV Import/Export behält nun den Status von manuellen Tests (`isManual`) und den Statistik-Ausschluss (`excludeFromStats`) bei.
+        *   Verbesserung des Styling für Eingabefelder im Einstellungs-Modal.
+    *   **Dokumentation:** README aktualisiert, um neue Features und die manuelle Installation hervorzuheben.
+
+*   **V1.2.0:**
     *   **Erweiterte Charts:**
         *   Anzeige von Soll-Werten (Download/Upload) als Referenzlinien.
         *   **Klick-to-Zoom:** Vollbildmodus für Diagramme mit dynamischem Nachladen von historischen Daten.
