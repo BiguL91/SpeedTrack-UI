@@ -686,7 +686,7 @@ function App() {
       {
         label: 'Download (Mbps)',
         data: chartDataReversed.map(item => item.download),
-        borderColor: 'rgb(53, 162, 235)',
+        borderColor: 'rgb(53, 162, 235)', // 100% Deckkraft
         backgroundColor: 'rgba(53, 162, 235, 0.2)',
         yAxisID: 'y',
         tension: 0.4,
@@ -695,12 +695,33 @@ function App() {
       {
         label: 'Upload (Mbps)',
         data: chartDataReversed.map(item => item.upload),
-        borderColor: 'rgb(255, 99, 132)',
+        borderColor: 'rgb(255, 99, 132)', // 100% Deckkraft
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
         yAxisID: 'y',
         tension: 0.4,
         fill: true,
       },
+      // Grenzwerte (Nur anzeigen wenn > 0)
+      ...(parseFloat(expectedDownload) > 0 ? [{
+        label: 'Soll Download',
+        data: Array(chartDataReversed.length).fill(parseFloat(expectedDownload)),
+        borderColor: '#f39c12', // Orange
+        borderDash: [10, 5], // Längere Striche
+        borderWidth: 2, // Dicker
+        pointRadius: 0, // Keine Punkte
+        fill: false,
+        yAxisID: 'y',
+      }] : []),
+      ...(parseFloat(expectedUpload) > 0 ? [{
+        label: 'Soll Upload',
+        data: Array(chartDataReversed.length).fill(parseFloat(expectedUpload)),
+        borderColor: '#2ecc71', // Grün
+        borderDash: [10, 5],
+        borderWidth: 2, // Dicker
+        pointRadius: 0,
+        fill: false,
+        yAxisID: 'y',
+      }] : [])
     ],
   };
 
