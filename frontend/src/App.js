@@ -776,12 +776,14 @@ function App() {
   // --- RENDER HELPERS ---
   const renderDashboard = () => (
       <>
-                    <div className="card" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px'}}>
-                      <button className="start-btn" onClick={runTest} disabled={loading}>
-                        {loading ? 'Speedtest läuft...' : 'Neuen Test starten'}
-                      </button>
+                    <div className="card" style={{display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '20px'}}>
+                      <div style={{ flexGrow: 0.5 }}> {/* Dies verschiebt den Button relativ zum linken Rand nach rechts */}
+                        <button className="start-btn" onClick={runTest} disabled={loading}>
+                            {loading ? 'Speedtest läuft...' : 'Neuen Test starten'}
+                        </button>
+                      </div>
                       
-                      <div style={{display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap'}}>
+                      <div style={{display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap', marginLeft: 'auto'}}> {/* Dies drückt den Block nach ganz rechts */}
                           {lastResult && (
                               <div style={{color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: '500'}}>
                                                       Letzter Test: <span style={{color: 'var(--text-color)', fontWeight: 'bold'}}>
@@ -860,7 +862,7 @@ function App() {
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
                     <h3 style={{margin: 0, fontSize: '1.1rem', color: 'var(--text-color)'}}>Geschwindigkeit</h3>
                     <div style={{display: 'flex', gap: '5px'}}>
-                        {[5, 10, 20, 50, 0].map(limit => (
+                        {[5, 10, 20, 50].map(limit => (
                             <button 
                                 key={limit}
                                 onClick={() => setChartDataLimit(limit)}
