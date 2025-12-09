@@ -472,7 +472,23 @@ async function runScheduledTest() {
           }
 
           // Aggregat speichern
-          await saveResultPromise(attempt1, { 
+          
+          // Prüfen, ob verschiedene Server genutzt wurden
+          const uniqueServerIds = [...new Set(allResults.map(r => r.server && r.server.id).filter(id => id))];
+          let aggregateResultObj = attempt1;
+
+          if (uniqueServerIds.length > 1) {
+              // Kopie erstellen, um Metadaten anzupassen
+              aggregateResultObj = JSON.parse(JSON.stringify(attempt1)); // Deep clone sicherheitshalber
+              if (aggregateResultObj.server) {
+                  aggregateResultObj.server.name = "Diverse Server";
+                  aggregateResultObj.server.location = `(Genutzte Server: ${uniqueServerIds.length})`;
+                  aggregateResultObj.server.country = "Diverse";
+                  aggregateResultObj.server.id = null; // Keine spezifische ID
+              }
+          }
+
+          await saveResultPromise(aggregateResultObj, { 
               groupId, 
               isAggregate: true,
               overrideDownload: finalDown,
