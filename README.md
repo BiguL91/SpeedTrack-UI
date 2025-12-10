@@ -5,11 +5,12 @@ Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwind
 
 <p align="center">
 ![alt text](/bilder/main.png)
+</p>
 ![alt text](/bilder/chart.png)
 ![alt text](/bilder/details.png)
 ![alt text](/bilder/historie.png)
 ![alt text](/bilder/setting.png)
-</p>
+
 
 ## Features
 
