@@ -30,11 +30,9 @@ Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwind
 *   🌗 **Dark Mode:** Automatische Erkennung (System) oder manueller Umschalter.
 *   📱 **Responsive:** Optimiert für Desktop und Mobile.
 
-## Installation (Manuell)
+## Installation (Docker)
 
-Voraussetzungen:
-*   Node.js (v16+)
-*   Ookla Speedtest CLI (muss installiert und im PATH sein: [Installationsanleitung](https://www.speedtest.net/apps/cli))
+Die einfachste Methode zur Installation ist Docker Compose.
 
 1.  **Repository klonen:**
     ```bash
@@ -42,22 +40,12 @@ Voraussetzungen:
     cd SpeedTrack-UI
     ```
 
-2.  **Backend einrichten und starten:**
+2.  **Container starten:**
     ```bash
-    cd backend
-    npm install
-    npm start
-    # Der Server läuft standardmäßig auf Port 5000.
+    docker-compose up -d
     ```
 
-3.  **Frontend einrichten und starten:**
-    (In einem *neuen* Terminal)
-    ```bash
-    cd frontend
-    npm install
-    npm start
-    # Das Frontend läuft standardmäßig auf Port 3000. Öffne http://localhost:3000 im Browser.
-    ```
+    Die Anwendung ist anschließend unter `http://localhost:8080` erreichbar.
 
 ## Konfiguration
 
@@ -86,7 +74,6 @@ Die meisten Einstellungen können direkt über die Benutzeroberfläche unter "Ei
         *   Optimiertes Frontend-Rendering (Memoization) für flüssigere Bedienung.
     *   **UI/UX:**
         *   **Neues Einstellungs-Menü:** Komplett überarbeitetes Modal mit Tabs (Planung, Qualität, Erweitert, Datenbank) für bessere Übersichtlichkeit.
-        *   **Lokalisierung:** Vollständige deutsche Übersetzung aller Kommentare und UI-Elemente.
     *   **Code-Qualität:** Bereinigung von ungenutztem Code und Abhängigkeiten.
 
 *   **V1.3.3:**
