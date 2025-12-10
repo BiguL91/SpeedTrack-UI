@@ -44,7 +44,7 @@ services:
     container_name: speed-track-ui
     restart: unless-stopped
     ports:
-      - "8080:5000" # Host-Port:Container-Port (Erreichbar unter http://localhost:8080)
+      - "8888:5000" # Host-Port:Container-Port (Erreichbar unter http://localhost:8080)
     
     volumes:
       - ./data:/app/data # Persistente Speicherung der Datenbank (speedtest.db)
@@ -59,29 +59,6 @@ services:
 
     Die Anwendung ist anschließend unter `http://localhost:8080` erreichbar.
 
-### Option 2: Docker Image manuell bauen (Alternativ)
-
-Wenn Sie das Docker Image selbst bauen möchten (z.B. für Anpassungen):
-
-1.  **Repository klonen:**
-    ```bash
-    git clone https://github.com/BiguL91/SpeedTrack-UI.git
-    cd SpeedTrack-UI
-    ```
-
-2.  **Image bauen:**
-    Ersetzen Sie `<dein-username>` durch Ihren Docker Hub Benutzernamen (optional, wenn Sie nicht vorhaben, es hochzuladen).
-    ```bash
-    docker build -t <dein-username>/speed-track-ui:latest .
-    ```
-
-3.  **Container starten (manuell):**
-    ```bash
-    docker run -d -p 8080:5000 --name speed-track-ui -v ./data:/app/data <dein-username>/speed-track-ui:latest
-    ```
-    *(Hinweis: Für erweiterte Konfigurationen und persistente Datenablage ist die `docker-compose.yml` die bessere Wahl.)*
-
-    Die Anwendung ist anschließend unter `http://localhost:8080` erreichbar.
 
 ## Konfiguration
 
