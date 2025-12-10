@@ -3,7 +3,7 @@ import { isBelowThreshold, formatServerDisplay } from '../utils/dataHelpers';
 
 const HistoryTable = ({
     tests,
-    history, // Needed for looking up details of aggregated groups
+    history, // Benötigt, um Details von aggregierten Gruppen nachzuschlagen
     expandedGroupId,
     toggleExpand,
     serverBlacklist,
@@ -14,7 +14,7 @@ const HistoryTable = ({
     isFullHistory = false
 }) => {
     
-    // Helper to check if server is blacklisted
+    // Hilfsfunktion: Prüft, ob Server auf der Blacklist steht
     const isBlacklisted = (serverId) => {
         if (!serverId || !serverBlacklist) return false;
         return String(serverBlacklist).split(',').map(s => s.trim()).includes(String(serverId));
@@ -52,7 +52,7 @@ const HistoryTable = ({
                     const isGroup = test.isAggregate === 1;
                     const isExpanded = isGroup && expandedGroupId === test.groupId;
 
-                    // Detail-Items finden if it is a group
+                    // Detail-Items finden, falls es eine Gruppe ist
                     const details = isGroup ? history.filter(d => d.groupId === test.groupId && d.isAggregate === 0) : [];
 
                     return (
@@ -141,7 +141,7 @@ const HistoryTable = ({
                                 )}
                             </li>
 
-                            {/* DETAIL ROWS */}
+                            {/* DETAIL ZEILEN */}
                             {isExpanded && details.map(detail => (
                                 <li
                                     key={detail.id}

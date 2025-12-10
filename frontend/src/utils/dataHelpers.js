@@ -1,4 +1,4 @@
-// Helper to check if a test result is below the expected threshold
+// Hilfsfunktion: Prüft, ob ein Testergebnis unter dem erwarteten Grenzwert liegt
 export const isBelowThreshold = (test, expectedDownload, expectedUpload, tolerance) => {
     const eDown = parseFloat(expectedDownload);
     const eUp = parseFloat(expectedUpload);

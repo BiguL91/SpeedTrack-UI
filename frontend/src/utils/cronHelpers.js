@@ -1,4 +1,4 @@
-// Helper functions for Cron Logic
+// Hilfsfunktionen für Cron-Logik
 
 // Generiert den Cron-String aus Intervall und Startzeit
 export const generateCron = (interval, timeStr) => {
@@ -73,12 +73,12 @@ export const parseCronToState = (cronStr) => {
         const mm = getMin(minPart);
         const mmStr = mm.toString().padStart(2, '0');
 
-        // Check Interval
+        // Prüfe Intervall
         if (minPart.includes('/5')) { parsedInterval = '5m'; parsedTime = `00:${mmStr}`; }
         else if (minPart.includes('/10')) { parsedInterval = '10m'; parsedTime = `00:${mmStr}`; }
         else if (minPart.includes('/30')) { parsedInterval = '30m'; parsedTime = `00:${mmStr}`; }
         else if (hourPart === '*') {
-            // Hourly: "15 * * * *"
+            // Stündlich: "15 * * * *"
             parsedInterval = '1h';
             parsedTime = `00:${mmStr}`; // Stunde egal bei stündlich, wir zeigen nur Min an eigentlich, aber User hat Input type=time
         }

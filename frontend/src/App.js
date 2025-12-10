@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import './App.css';
 import packageJson from '../package.json';
-import { generateCron, parseCronToState, getNextRunTime } from './utils/cronHelpers';
-import { isBelowThreshold, formatServerDisplay } from './utils/dataHelpers';
+import { getNextRunTime } from './utils/cronHelpers';
+import { isBelowThreshold } from './utils/dataHelpers';
 import SpeedChartsSection from './components/SpeedChartsSection';
 import ExpandedChartModal from './components/ExpandedChartModal';
 import SettingsModal from './components/SettingsModal';
@@ -31,7 +31,7 @@ function App() {
   // Theme State: 'light', 'dark', oder 'auto'
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'auto');
   
-  // Settings State
+  // Einstellungs-Status
   const [showSettings, setShowSettings] = useState(false);
   const [cronSchedule, setCronSchedule] = useState('0 * * * *'); // Der "echte" Cron-String für Backend
   
@@ -40,10 +40,10 @@ function App() {
   const [selectedTest, setSelectedTest] = useState(null); // Für Detail-Ansicht
   const [chartDataLimit, setChartDataLimit] = useState(20); // Wie viele Tests im Chart anzeigen? (0 = Alle)
   
-  // View State: 'dashboard' oder 'history'
+  // Ansichts-Status: 'dashboard' oder 'history'
   const [view, setView] = useState('dashboard');
   
-  // Filter State
+  // Filter-Status
   const [filterSource, setFilterSource] = useState('all'); // 'all', 'manual', 'auto', 'aggregate'
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'included', 'excluded'
   const [filterResult, setFilterResult] = useState('all'); // 'all', 'pass', 'fail'
@@ -51,7 +51,7 @@ function App() {
 
 
   
-  // QS / Retry Settings
+  // QS / Wiederholungs-Einstellungen
   const [expectedDownload, setExpectedDownload] = useState('0');
   const [expectedUpload, setExpectedUpload] = useState('0');
   const [tolerance, setTolerance] = useState('10');
@@ -69,10 +69,10 @@ function App() {
   // State für aufgeklappte Gruppe (ID)
   const [expandedGroupId, setExpandedGroupId] = useState(null);
 
-  // Toast Notification State
+  // Toast-Benachrichtigungs-Status
   const [notification, setNotification] = useState(null); // { message: '', type: 'success' | 'error' }
 
-  // System Status Logs (SSE) & Connection State
+  // System-Status-Logs (SSE) & Verbindungs-Status
   const [statusLogs, setStatusLogs] = useState([]);
   const [isStatusConnected, setIsStatusConnected] = useState(false);
   const eventSourceRef = React.useRef(null);
@@ -286,7 +286,7 @@ function App() {
   };
 
   // Filter Logik
-  const getFilteredHistory = () => {
+  const getFilteredHistory = useMemo(() => {
       return history.filter(test => {
           // 1. Basis-Filter (Was ist ein "Haupteintrag"?)
           // Zeige Aggregate, Manuelle Tests oder Tests ohne Gruppe.
@@ -335,7 +335,7 @@ function App() {
 
           return true;
       });
-  };
+  }, [history, filterSource, filterStatus, filterResult, filterTime, expectedDownload, expectedUpload, tolerance]);
 
   const fetchHistory = useCallback(async (limit = 0) => {
     try {
@@ -355,7 +355,7 @@ function App() {
 
   // useEffect für Initialisierung und Auto-Refresh
   useEffect(() => {
-    // Initial Load
+    // Initiales Laden
     fetchSettings();
     if (view === 'dashboard') {
         fetchHistory(200);
@@ -459,7 +459,7 @@ function App() {
       fetchHistoryRef.current = fetchHistory;
   }, [view, fetchHistory]);
 
-  // SSE Connection
+  // SSE Verbindung
   useEffect(() => {
     let retryTimeout;
 
@@ -519,7 +519,7 @@ function App() {
   const displayData = loading ? currentTestValues : (lastResult || { download: 0, upload: 0, ping: 0 });
   const resultCardTitle = loading ? 'Live Test läuft...' : 'Letztes Ergebnis';
 
-  // --- RENDER HELPERS ---
+  // --- RENDER HILFSFUNKTIONEN ---
   const renderDashboard = () => (
       <>
                     <div className="card" style={{display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '20px'}}>
@@ -569,7 +569,7 @@ function App() {
                       </div>
                       
                       {error && <p style={{color: 'red', width: '100%', marginTop: '0'}}>{error}</p>}
-                    </div>        {/* HAUPTBEREICH: Combined Metrics */}
+                    </div>        {/* HAUPTBEREICH: Kombinierte Metriken */}
         <div className="card card-main">
             <h2>{resultCardTitle}</h2>
             
@@ -642,7 +642,7 @@ function App() {
                         </div>
                     </div>
                     
-                {/* CHARTS WRAPPER */}
+                {/* DIAGRAMM CONTAINER */}
                 <SpeedChartsSection 
                     history={history}
                     theme={theme}
@@ -654,14 +654,14 @@ function App() {
                     setExpandedChart={setExpandedChart}
                 />
         
-                        {/* LIST CARD (SMALLER) */}
+                        {/* LISTEN KARTE (KLEIN) */}
                 <div className="card">
 
                     <div className="list-header-row">
 
                         <div className="list-header-left">
 
-                            <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte {getFilteredHistory().slice(0, visibleCount).length} Tests</h2>
+                            <h2 style={{margin: 0, border: 'none', padding: 0}}>Letzte {getFilteredHistory.slice(0, visibleCount).length} Tests</h2>
 
                             <div style={{display: 'flex', gap: '10px', marginLeft: '10px'}}>
                                 <select 
@@ -729,13 +729,7 @@ function App() {
                             >
                                 📜 Historie (Alle)
                             </button>
-                            <input 
-                                type="file" 
-                                accept=".csv" 
-                                ref={fileInputRef} 
-                                style={{display: 'none'}} 
-                                onChange={handleFileUpload} 
-                            />
+                            
                             <button 
                                 onClick={handleImportClick}
                                 className="export-link"
@@ -749,7 +743,7 @@ function App() {
                     </div>
                     
                     <HistoryTable 
-                        tests={getFilteredHistory().slice(0, visibleCount)}
+                        tests={getFilteredHistory.slice(0, visibleCount)}
                         history={history}
                         expandedGroupId={expandedGroupId}
                         toggleExpand={toggleExpand}
@@ -783,7 +777,7 @@ function App() {
                 >
                     ⬅ Zurück
                 </button>
-                <h2 style={{margin: 0, border: 'none'}}>Gesamte Historie ({getFilteredHistory().length} Einträge)</h2>
+                <h2 style={{margin: 0, border: 'none'}}>Gesamte Historie ({getFilteredHistory.length} Einträge)</h2>
                 
                 <div style={{display: 'flex', gap: '10px'}}>
                     <select 
@@ -831,13 +825,7 @@ function App() {
                 </div>
 
                 <div style={{display:'flex', gap: '15px', alignItems: 'center'}}>
-                    <input 
-                        type="file" 
-                        accept=".csv" 
-                        ref={fileInputRef} 
-                        style={{display: 'none'}} 
-                        onChange={handleFileUpload} 
-                    />
+                    
                                                             <button 
                                                                 onClick={handleImportClick}
                                                                 className="export-link" 
@@ -850,7 +838,7 @@ function App() {
           </div>
 
           <HistoryTable 
-            tests={getFilteredHistory()}
+            tests={getFilteredHistory}
             history={history}
             expandedGroupId={expandedGroupId}
             toggleExpand={toggleExpand}
@@ -900,14 +888,14 @@ function App() {
           <div style={{fontSize: '0.7rem', marginTop: '5px'}}>Created with support from Gemini</div>
       </footer>
 
-      {/* MANUAL RESULT MODAL */}
+      {/* MANUELLES ERGEBNIS MODAL */}
       <ManualResultModal 
         result={manualResult}
         onClose={() => setManualResult(null)}
         onExclude={toggleExcludeStats}
       />
 
-      {/* EXPANDED CHART MODAL */}
+      {/* ERWEITERTES DIAGRAMM MODAL */}
       <ExpandedChartModal 
         expandedChart={expandedChart}
         setExpandedChart={setExpandedChart}
@@ -919,7 +907,7 @@ function App() {
         expectedUpload={expectedUpload}
       />
       
-      {/* SETTINGS MODAL */}
+      {/* EINSTELLUNGEN MODAL */}
       <SettingsModal 
         showSettings={showSettings}
         setShowSettings={setShowSettings}
@@ -937,9 +925,7 @@ function App() {
         serverBlacklist={serverBlacklist}
       />
 
-      {/* TOAST NOTIFICATION */}
-
-      {/* TOAST NOTIFICATION */}
+      {/* TOAST BENACHRICHTIGUNG */}
       {notification && (
         <div className={`toast-notification ${notification.type}`}>
           {notification.message}

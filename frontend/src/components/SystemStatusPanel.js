@@ -51,7 +51,7 @@ const SystemStatusPanel = ({ logs = [], isConnected = false }) => {
                 transition: 'all 0.3s ease'
             }}
         >
-            {/* Header / Minimized View */}
+            {/* Kopfzeile / Minimierte Ansicht */}
             <div 
                 onClick={() => setIsExpanded(!isExpanded)}
                 style={{
@@ -64,7 +64,7 @@ const SystemStatusPanel = ({ logs = [], isConnected = false }) => {
                     borderBottom: isExpanded ? '1px solid var(--border-color)' : 'none'
                 }}
             >
-                {/* Status Dot */}
+                {/* Status Punkt */}
                 <div style={{
                     width: '8px', 
                     height: '8px', 
@@ -74,7 +74,7 @@ const SystemStatusPanel = ({ logs = [], isConnected = false }) => {
                     flexShrink: 0
                 }} title={isConnected ? "Verbunden" : "Getrennt"}></div>
 
-                {/* Last Message (Visible when minimized) */}
+                {/* Letzte Nachricht (Sichtbar wenn minimiert) */}
                 {!isExpanded && (
                     <div style={{
                         whiteSpace: 'nowrap', 
@@ -87,16 +87,16 @@ const SystemStatusPanel = ({ logs = [], isConnected = false }) => {
                     </div>
                 )}
                 
-                {/* Title (Visible when expanded) */}
+                {/* Titel (Sichtbar wenn erweitert) */}
                 {isExpanded && <strong style={{flex: 1}}>System Log</strong>}
 
-                {/* Expand/Collapse Icon */}
+                {/* Ausklappen/Einklappen Icon */}
                 <span style={{marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-secondary)'}}>
                     {isExpanded ? '▼' : '▲'}
                 </span>
             </div>
 
-            {/* Expanded Content: Log List */}
+            {/* Erweiterter Inhalt: Log Liste */}
             {isExpanded && (
                 <div style={{
                     padding: '10px',

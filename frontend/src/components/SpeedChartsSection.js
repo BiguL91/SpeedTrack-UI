@@ -46,7 +46,7 @@ const SpeedChartsSection = ({
     // Ich entscheide mich dafür, die Logik hier lokal zu haben, aber wir brauchen die 'tolerance' Prop.
     // Ich füge 'tolerance' oben hinzu.
     
-    // --- Chart Data Logic ---
+    // --- Chart Daten Logik ---
     const chartData = useMemo(() => {
         // Filtere Retry-Versuche raus, zeige nur Aggregate oder Einzeltests
         // UND filtere ignorierte Tests raus
@@ -121,7 +121,7 @@ const SpeedChartsSection = ({
     }, [history, chartDataLimit, expectedDownload, expectedUpload]);
 
 
-    // --- Bar Chart Data Logic ---
+    // --- Balkendiagramm Daten Logik ---
     const testsPerDayData = useMemo(() => {
          const dataMap = {}; 
          // Sortiere chronologisch
@@ -166,7 +166,7 @@ const SpeedChartsSection = ({
                           ]
                       };
                  }, [history, expectedDownload, expectedUpload, tolerance]);
-    // --- Options ---
+    // --- Optionen ---
     const isDark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const textColor = isDark ? '#e0e0e0' : '#666';
     const gridColor = isDark ? '#444' : '#ddd';
@@ -232,7 +232,7 @@ const SpeedChartsSection = ({
     return (
         <>
             <div className="charts-row">
-                {/* SPEED CHART */}
+                {/* GESCHWINDIGKEITS-DIAGRAMM */}
                 <div 
                     className="card chart-container" 
                     style={{display: 'flex', flexDirection: 'column', position: 'relative', cursor: 'pointer'}}
@@ -268,7 +268,7 @@ const SpeedChartsSection = ({
                     </div>
                 </div>
 
-                {/* PING CHART */}
+                {/* PING-DIAGRAMM */}
                 <div 
                     className="card chart-container" 
                     style={{display: 'flex', flexDirection: 'column', position: 'relative', cursor: 'pointer'}}
@@ -284,7 +284,7 @@ const SpeedChartsSection = ({
                 </div>
             </div>
 
-            {/* BAR CHART */}
+            {/* BALKENDIAGRAMM */}
             <div className="card chart-container" style={{display: 'flex', flexDirection: 'column', position: 'relative', marginTop: '20px'}}>
                 <div style={{marginBottom: '15px'}}>
                         <h3 style={{margin: 0, fontSize: '1.1rem', color: 'var(--text-color)'}}>Tests pro Tag</h3>

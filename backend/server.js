@@ -54,6 +54,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
   } else {
     console.log('Verbunden mit der SQLite-Datenbank.');
     createTable();
+    db.run("CREATE INDEX IF NOT EXISTS idx_timestamp ON results (timestamp)");
     upgradeDatabase(); // Neue Spalten hinzufügen falls nötig
     createSettingsTable();
   }
@@ -86,8 +87,8 @@ function createSettingsTable() {
           { key: 'tolerance', value: '10' },        // 10%
           { key: 'retry_count', value: '3' },       // 3 Wiederholungen
           { key: 'retry_delay', value: '30' },      // 30 Sekunden Pause
-          { key: 'retry_strategy', value: 'AVG' },  // AVG, MIN, MAX
-          { key: 'retry_server_strategy', value: 'NEW' } // KEEP, NEW
+          { key: 'retry_strategy', value: 'AVG' },  // DURCHSCHNITT, MIN, MAX
+          { key: 'retry_server_strategy', value: 'NEW' } // BEHALTEN, NEU
       ];
 
       settingsDefaults.forEach(setting => {
@@ -626,7 +627,7 @@ app.post('/api/settings', (req, res) => {
     let updates = [];
     let params = [];
 
-    // Helper
+    // Helfer
     const addUpdate = (key, value) => {
         if (value !== undefined) {
             updates.push("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)");
@@ -704,7 +705,7 @@ app.post('/api/settings', (req, res) => {
                     if (commitErr) {
                         res.status(500).json({ error: commitErr.message });
                     } else {
-                        // Side Effects
+                        // Nebeneffekte
                         if (cron_schedule !== undefined) startCronJob(cron_schedule);
                         if (retention_period !== undefined && parseInt(retention_period) > 0) cleanupDatabase();
 
@@ -935,7 +936,7 @@ app.post('/api/import', upload.single('file'), (req, res) => {
         });
 });
 
-// STATUS STREAM ENDPOINT
+// STATUS STREAM ENDPUNKT
 app.get('/api/status/stream', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -944,7 +945,7 @@ app.get('/api/status/stream', (req, res) => {
     const client = { id: Date.now(), res };
     statusClients.push(client);
 
-    // Initial message
+    // Initiale Nachricht
     res.write(`data: ${JSON.stringify({ message: "Verbunden mit Status-Stream", type: "info" })}\n\n`);
 
     req.on('close', () => {
@@ -1135,7 +1136,7 @@ app.get('/api/test/stream', (req, res) => {
   });
 });
 
-// --- PRODUCTION SETUP ---
+// --- PRODUKTIV-SETUP ---
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('*', (req, res) => {

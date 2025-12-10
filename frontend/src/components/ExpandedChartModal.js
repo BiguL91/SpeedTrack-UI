@@ -39,7 +39,7 @@ const ExpandedChartModal = ({
     expectedUpload
 }) => {
     
-    // --- Data Logic ---
+    // --- Daten Logik ---
     const chartData = useMemo(() => {
         // Filtere Retry-Versuche raus
         const filteredHistory = history.filter(t => t.isAggregate === 1 || !t.groupId);
@@ -112,7 +112,7 @@ const ExpandedChartModal = ({
         return { speedData, pingData };
     }, [history, expandedChartLimit, expectedDownload, expectedUpload]);
 
-    // --- Options ---
+    // --- Optionen ---
     const isDark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const textColor = isDark ? '#e0e0e0' : '#666';
     const gridColor = isDark ? '#444' : '#ddd';
