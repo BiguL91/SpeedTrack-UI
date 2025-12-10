@@ -2,13 +2,18 @@ version: '3.8'
 
 services:
   speed-track-ui:
-    build: .
+    image: bigul91/speed-track-ui:latest
     container_name: speed-track-ui
     restart: unless-stopped
     ports:
-      - "8080:5000" # Erreichbar unter http://localhost:8080
+      - "8080:5000" # Host-Port:Container-Port (Erreichbar unter http://localhost:8080)
+    
+    volumes:
+      - ./data:/app/data # Persistente Speicherung der Datenbank (speedtest.db)
+
     environment:
       - PORT=5000
       - CRON_SCHEDULE=0 * * * *
-    volumes:
-      - ./data:/app/data # Persistente Datenbank-Speicherung
+      - TZ=Europe/Berlin # Zeitzone setzen für korrekte Cron-Ausführung und Logs
+      # Die meisten Einstellungen werden direkt in der Datenbank verwaltet.
+      # CRON_SCHEDULE wird nur für die erstmalige Initialisierung des Datenbank-Wertes verwendet.

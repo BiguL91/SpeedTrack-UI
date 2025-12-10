@@ -52,11 +52,15 @@ const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Fehler beim Öffnen der Datenbank:', err.message);
   } else {
-    console.log('Verbunden mit der SQLite-Datenbank.');
-    createTable();
-    db.run("CREATE INDEX IF NOT EXISTS idx_timestamp ON results (timestamp)");
-    upgradeDatabase(); // Neue Spalten hinzufügen falls nötig
-    createSettingsTable();
+    console.log('Verbunden mit der SQLite-Datenbank bei:', dbPath);
+    
+    // Initialisierung strikt nacheinander ausführen
+    db.serialize(() => {
+        createTable();
+        db.run("CREATE INDEX IF NOT EXISTS idx_timestamp ON results (timestamp)");
+        upgradeDatabase(); // Neue Spalten hinzufügen falls nötig
+        createSettingsTable();
+    });
   }
 });
 

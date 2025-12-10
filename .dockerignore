@@ -1,0 +1,7 @@
+**/node_modules
+**/build
+.git
+.env
+.DS_Store
+data/
+backend/speedtest.db

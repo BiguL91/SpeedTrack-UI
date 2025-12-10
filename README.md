@@ -30,9 +30,11 @@ Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwind
 *   🌗 **Dark Mode:** Automatische Erkennung (System) oder manueller Umschalter.
 *   📱 **Responsive:** Optimiert für Desktop und Mobile.
 
-## Installation (Docker)
+## Installation
 
-Die einfachste Methode zur Installation ist Docker Compose.
+### Option 1: Docker Compose (Empfohlen)
+
+Die einfachste Methode zur Installation ist Docker Compose. Dies zieht das fertige Image direkt von Docker Hub: [bigul91/speed-track-ui](https://hub.docker.com/r/bigul91/speed-track-ui).
 
 1.  **Repository klonen:**
     ```bash
@@ -47,35 +49,56 @@ Die einfachste Methode zur Installation ist Docker Compose.
 
     Die Anwendung ist anschließend unter `http://localhost:8080` erreichbar.
 
+### Option 2: Docker Image manuell bauen (Alternativ)
+
+Wenn Sie das Docker Image selbst bauen möchten (z.B. für Anpassungen):
+
+1.  **Repository klonen:**
+    ```bash
+    git clone https://github.com/BiguL91/SpeedTrack-UI.git
+    cd SpeedTrack-UI
+    ```
+
+2.  **Image bauen:**
+    Ersetzen Sie `<dein-username>` durch Ihren Docker Hub Benutzernamen (optional, wenn Sie nicht vorhaben, es hochzuladen).
+    ```bash
+    docker build -t <dein-username>/speed-track-ui:latest .
+    ```
+
+3.  **Container starten (manuell):**
+    ```bash
+    docker run -d -p 8080:5000 --name speed-track-ui -v ./data:/app/data <dein-username>/speed-track-ui:latest
+    ```
+    *(Hinweis: Für erweiterte Konfigurationen und persistente Datenablage ist die `docker-compose.yml` die bessere Wahl.)*
+
+    Die Anwendung ist anschließend unter `http://localhost:8080` erreichbar.
+
 ## Konfiguration
 
-Die meisten Einstellungen können direkt über die Benutzeroberfläche unter "Einstellungen" vorgenommen werden. Einige initiale Werte können über Umgebungsvariablen gesetzt werden.
+Die meisten Einstellungen (z.B. `RETENTION_PERIOD`, `EXPECTED_DOWNLOAD`, `TOLERANCE`, etc.) werden direkt über die Benutzeroberfläche unter "Einstellungen" vorgenommen und in der internen SQLite-Datenbank gespeichert.
 
-| Variable | Standard (UI-Default) | Beschreibung |
+Einige initiale oder umgebungsbezogene Werte können jedoch über Umgebungsvariablen in der `docker-compose.yml` oder beim manuellen `docker run` Befehl gesetzt werden:
+
+| Variable | Standardwert in `docker-compose.yml` | Beschreibung |
 | :--- | :--- | :--- |
-| `PORT` | 5000 | Port des Backend-Servers (Intern) |
-| `CRON_SCHEDULE` | `0 * * * *` | Initialer Zeitplan für automatische Tests. Kann später in der UI geändert werden. |
-| `RETENTION_PERIOD` | 0 | Initialer Wert für die Datenvorhaltung in Tagen (0 = nie löschen). Kann später in der UI geändert werden. |
-| `EXPECTED_DOWNLOAD` | 0 | Erwarteter Download-Wert (Mbps). 0 = Funktion deaktiviert. |
-| `EXPECTED_UPLOAD` | 0 | Erwarteter Upload-Wert (Mbps). 0 = Funktion deaktiviert. |
-| `TOLERANCE` | 10 | Toleranz in Prozent (z.B. 10 für 10%). |
-| `RETRY_COUNT` | 3 | Anzahl der Wiederholungen, falls der Wert die Toleranz unterschreitet. |
-| `RETRY_DELAY` | 30 | Pause in Sekunden zwischen den Wiederholungen. |
-| `RETRY_STRATEGY` | AVG | Strategie zur Berechnung des Endergebnisses (AVG, MIN, MAX). |
-| `RETRY_SERVER_STRATEGY` | NEW | Strategie für Serverwahl bei Wiederholung (KEEP = Gleicher, NEW = Neuer Server). |
-| `SERVER_BLACKLIST` | (leer) | Kommaseparierte Server-IDs, die bei automatischen Tests ignoriert werden. |
+| `PORT` | 5000 | Der interne Port, auf dem der Node.js Backend-Server im Container lauscht. |
+| `CRON_SCHEDULE` | `0 * * * *` | Der initiale Cron-Zeitplan für automatische Speedtests. Dieser Wert wird nur beim allerersten Start in die Datenbank geschrieben und kann danach über die UI geändert werden. |
+| `TZ` | `Europe/Berlin` | Die Zeitzone des Containers. Wichtig für die korrekte Ausführung von Cronjobs und Zeitstempeln. Passen Sie diesen Wert an Ihre lokale Zeitzone an. |
+
+## Support & Spenden ☕
+
+Wenn Ihnen das Projekt gefällt und Sie die Entwicklung unterstützen möchten, können Sie mir gerne einen Kaffee spendieren: [ko-fi.com/bigul91](https://ko-fi.com/bigul91)
 
 ## Updates & Changelog
 
 *   **V1.4.0 (Aktuell):**
     *   **Rebranding:** Projektname geändert zu **SpeedTrack UI**.
-    *   **Performance:** 
+    *   **Performance:**
         *   Datenbank-Indexierung für schnellere Abfragen.
         *   Optimiertes Frontend-Rendering (Memoization) für flüssigere Bedienung.
     *   **UI/UX:**
         *   **Neues Einstellungs-Menü:** Komplett überarbeitetes Modal mit Tabs (Planung, Qualität, Erweitert, Datenbank) für bessere Übersichtlichkeit.
     *   **Code-Qualität:** Bereinigung von ungenutztem Code und Abhängigkeiten.
-
 *   **V1.3.3:**
     *   **Live-Monitoring:**
         *   **System Status Panel:** Neues, minimierbares Panel am unteren Bildschirmrand zeigt Live-Statusmeldungen vom Backend (z.B. Start von Tests, Wiederholungsversuche, Serverwechsel).
