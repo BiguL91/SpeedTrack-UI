@@ -35,17 +35,27 @@ Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwind
 ### Option 1: Docker Compose (Empfohlen)
 
 Die einfachste Methode zur Installation ist Docker Compose. Dies zieht das fertige Image direkt von Docker Hub: [bigul91/speed-track-ui](https://hub.docker.com/r/bigul91/speed-track-ui).
+```ruby
+version: '3.8'
 
-1.  **Repository klonen:**
-    ```bash
-    git clone https://github.com/BiguL91/SpeedTrack-UI.git
-    cd SpeedTrack-UI
-    ```
+services:
+  speed-track-ui:
+    image: bigul91/speed-track-ui:latest
+    container_name: speed-track-ui
+    restart: unless-stopped
+    ports:
+      - "8080:5000" # Host-Port:Container-Port (Erreichbar unter http://localhost:8080)
+    
+    volumes:
+      - ./data:/app/data # Persistente Speicherung der Datenbank (speedtest.db)
 
-2.  **Container starten:**
-    ```bash
-    docker-compose up -d
-    ```
+    environment:
+      - PORT=5000
+      - CRON_SCHEDULE=0 * * * *
+      - TZ=Europe/Berlin # Zeitzone setzen für korrekte Cron-Ausführung und Logs
+      # Die meisten Einstellungen werden direkt in der Datenbank verwaltet.
+      # CRON_SCHEDULE wird nur für die erstmalige Initialisierung des Datenbank-Wertes verwendet.
+```
 
     Die Anwendung ist anschließend unter `http://localhost:8080` erreichbar.
 
