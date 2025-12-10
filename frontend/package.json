@@ -1,5 +1,5 @@
 {
-  "name": "speedtest-tracker-frontend",
+  "name": "speed-track-ui-frontend",
   "version": "1.3.3",
   "private": true,
   "dependencies": {

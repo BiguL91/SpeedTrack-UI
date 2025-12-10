@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  speedtest-tracker:
+  speed-track-ui:
     build: .
-    container_name: speedtest-tracker
+    container_name: speed-track-ui
     restart: unless-stopped
     ports:
       - "8080:5000" # Erreichbar unter http://localhost:8080

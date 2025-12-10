@@ -863,7 +863,7 @@ function App() {
         </button>
       </div>
 
-      <h1 onClick={() => setView('dashboard')} style={{cursor: 'pointer'}}>SpeedTest Tracker</h1>
+      <h1 onClick={() => setView('dashboard')} style={{cursor: 'pointer'}}>SpeedTrack UI</h1>
       
       {/* Global File Input for Import */}
       <input 

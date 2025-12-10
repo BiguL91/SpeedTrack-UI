@@ -1,4 +1,4 @@
-# SpeedTest Tracker
+# SpeedTrack UI
 
 Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwindigkeit. Es führt automatische Speedtests durch, visualisiert die Ergebnisse und ermöglicht detaillierte Analysen.
 
@@ -39,7 +39,7 @@ Voraussetzungen:
 1.  **Repository klonen:**
     ```bash
     git clone https://github.com/BiguL91/SpeedTest-Tracker.git
-    cd SpeedTest-Tracker
+    cd SpeedTrack-UI
     ```
 
 2.  **Backend einrichten und starten:**
