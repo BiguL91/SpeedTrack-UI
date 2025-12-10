@@ -70,7 +70,7 @@ services:
       # CRON_SCHEDULE wird nur für die erstmalige Initialisierung des Datenbank-Wertes verwendet.
 ```
 
-    Die Anwendung ist anschließend unter `http://localhost:8080` erreichbar.
+    Die Anwendung ist anschließend unter `http://localhost:8888` erreichbar.
 
 
 ## Konfiguration
