@@ -18,18 +18,18 @@ Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwind
 ## Features
 
 *   🚀 **Automatisierte Speedtests:** Führt Tests im Hintergrund durch, konfigurierbare Intervalle über die UI.
-*   🛡️ **Qualitätssicherung & Wiederholung:** Definiere erwartete Geschwindigkeiten und Toleranz. Bei Unterschreitung werden Tests automatisch mehrfach wiederholt. 
+*   🛡️ **Qualitätssicherung & Wiederholung:** Definiere erwartete Geschwindigkeiten und Toleranz. Bei Unterschreitung werden Tests automatisch mehrfach wiederholt.
     *   Wähle Strategien für das Endergebnis (Durchschnitt, Minimum, Maximum).
     *   **Neu:** Konfiguriere, ob bei Wiederholungen der gleiche Server genutzt oder ein neuer gesucht werden soll.
 *   🚫 **Server Blacklist:** Schließe bestimmte Speedtest-Server-IDs von automatischen Tests aus. Konfigurierbar über die UI und direkt aus der Test-Detailansicht.
-*   📊 **Interaktive Diagramme:** 
+*   📊 **Interaktive Diagramme:**
     *   Zoom & Pan Funktionen.
     *   **Soll-Werte Visualisierung:** Zeigt eingestellte Grenzwerte als Referenzlinien im Chart.
     *   **Vollbild-Modus:** Klicke auf ein Diagramm für eine vergrößerte Detailansicht mit dynamischem Nachladen von Daten.
     *   **Tests pro Tag Übersicht:** Neues Balkendiagramm visualisiert die Anzahl der bestandenen und nicht bestandenen Tests pro Tag.
 *   ⚡ **Live-Test:** Starte manuelle Tests und verfolge Ping, Download und Upload in Echtzeit.
     *   **Statistik-Option:** Entscheide nach einem manuellen Test, ob er in die Statistik einfließen soll.
-*   🔍 **Detaillierte Historie & Filter:** 
+*   🔍 **Detaillierte Historie & Filter:**
     *   Filtere Ergebnisse nach Typ (Manuell/Automatisch) und Status (Gewertet/Ignoriert).
     *   Erweiterte Ansicht zeigt alle Testergebnisse an, inklusive aufgeklappter Wiederholungstests.
 *   📦 **Gruppierte Testergebnisse:** Aggregierte Ergebnisse von Wiederholungen können aufgeklappt werden.
@@ -43,8 +43,12 @@ Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwind
 *   🌗 **Dark Mode:** Automatische Erkennung (System) oder manueller Umschalter.
 *   📱 **Responsive:** Optimiert für Desktop und Mobile.
 
-## Installation
+## Ookla API Nutzung – Disclaimer
+Für die Durchführung von Geschwindigkeitstests verwendet dieses System die Schnittstelle (API) von Ookla, LLC, dem Betreiber von Speedtest by Ookla.
 
+Mit der Nutzung dieser Funktion akzeptieren Sie automatisch die Nutzungsbedingungen und Datenschutzrichtlinien von Ookla. Bitte lesen Sie diese Dokumente auf der offiziellen Ookla-Website, um sich über die Datenerfassung und -verarbeitung durch Ookla zu informieren. Wir haben keinen Einfluss auf die von Ookla gesammelten Daten.
+
+## Installation
 ### Option 1: Docker Compose (Empfohlen)
 
 Die einfachste Methode zur Installation ist Docker Compose. Dies zieht das fertige Image direkt von Docker Hub: [bigul91/speed-track-ui](https://hub.docker.com/r/bigul91/speed-track-ui).
