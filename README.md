@@ -38,7 +38,7 @@ Voraussetzungen:
 
 1.  **Repository klonen:**
     ```bash
-    git clone https://github.com/BiguL91/SpeedTest-Tracker.git
+    git clone https://github.com/BiguL91/SpeedTrack-UI.git
     cd SpeedTrack-UI
     ```
 
@@ -79,7 +79,17 @@ Die meisten Einstellungen können direkt über die Benutzeroberfläche unter "Ei
 
 ## Updates & Changelog
 
-*   **V1.3.3 (Aktuell):**
+*   **V1.4.0 (Aktuell):**
+    *   **Rebranding:** Projektname geändert zu **SpeedTrack UI**.
+    *   **Performance:** 
+        *   Datenbank-Indexierung für schnellere Abfragen.
+        *   Optimiertes Frontend-Rendering (Memoization) für flüssigere Bedienung.
+    *   **UI/UX:**
+        *   **Neues Einstellungs-Menü:** Komplett überarbeitetes Modal mit Tabs (Planung, Qualität, Erweitert, Datenbank) für bessere Übersichtlichkeit.
+        *   **Lokalisierung:** Vollständige deutsche Übersetzung aller Kommentare und UI-Elemente.
+    *   **Code-Qualität:** Bereinigung von ungenutztem Code und Abhängigkeiten.
+
+*   **V1.3.3:**
     *   **Live-Monitoring:**
         *   **System Status Panel:** Neues, minimierbares Panel am unteren Bildschirmrand zeigt Live-Statusmeldungen vom Backend (z.B. Start von Tests, Wiederholungsversuche, Serverwechsel).
         *   **Echtzeit-Updates:** Die Testergebnis-Liste und Diagramme aktualisieren sich nun *sofort* automatisch, sobald ein Hintergrundtest abgeschlossen ist (kein Warten mehr auf den Intervall-Timer).

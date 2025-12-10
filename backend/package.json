@@ -1,6 +1,6 @@
 {
   "name": "speed-track-ui-backend",
-  "version": "1.3.3",
+  "version": "1.4.0",
   "description": "Backend for SpeedTrack UI",
   "main": "server.js",
   "scripts": {
