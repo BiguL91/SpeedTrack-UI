@@ -3,6 +3,10 @@
 Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwindigkeit. Es führt automatische Speedtests durch, visualisiert die Ergebnisse und ermöglicht detaillierte Analysen.
 
 ![alt text](/bilder/main.png)
+![alt text](/bilder/chart.png)
+![alt text](/bilder/details.png)
+![alt text](/bilder/historie.png)
+![alt text](/bilder/setting.png)
 
 
 ## Features
