@@ -2,7 +2,7 @@
 
 Ein modernes, selbst gehostetes Dashboard zur Überwachung der Internetgeschwindigkeit. Es führt automatische Speedtests durch, visualisiert die Ergebnisse und ermöglicht detaillierte Analysen.
 
-![alt text]([image-url](https://github.com/BiguL91/SpeedTrack-UI/blob/main/bilder/main.png)
+![alt text]([image-url](https://github.com/BiguL91/SpeedTrack-UI/blob/main/bilder/main.png))
 
 
 ## Features
